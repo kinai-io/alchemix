@@ -1,3 +1,4 @@
 pub mod entity;
-pub mod entity_store;
-// pub mod sqlite_datastore;
+pub mod sqlite_entity_store;
+
+pub mod prelude;
