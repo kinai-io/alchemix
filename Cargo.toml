@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "zbra-core",
+    "zbra-macros"
+]
+
+[workspace.package]
+name = "flowave-ws"
+version = "0.1.0"
