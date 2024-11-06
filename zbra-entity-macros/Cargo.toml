@@ -1,5 +1,5 @@
 [package]
-name = "zbra-macros"
+name = "zbra-entity-macros"
 version.workspace = true
 edition = "2021"
 

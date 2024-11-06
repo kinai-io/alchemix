@@ -37,7 +37,9 @@ pub async fn test_entity_store() {
         assert_eq!(users.len(), 2);
 
         let users: Vec<User> = datastore.query_entities("User", "rank", "value >= 3 AND value < 6").await;
-        println!("Users : {:?}", users);
+        // println!("Users : {:?}", users);
+        assert_eq!(users.len(), 3);
+
 
         let keys = vec!["User#User_2", "User#User_5"];
         datastore.remove_entities(&keys).await;

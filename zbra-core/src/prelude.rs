@@ -6,4 +6,5 @@ pub use uuid::Uuid;
 
 pub use crate::entity::{Entity, FieldIndex};
 pub use crate::sqlite_entity_store::SQLiteEntityStore;
-pub use zbra_macros::*;
+pub use zbra_entity_macros::*;
+pub use zbra_flow_macros::*;

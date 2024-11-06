@@ -2,7 +2,7 @@ use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, FromRow, Pool, S
 
 use crate::entity::{Entity, FieldIndex};
 
-#[derive(Debug, FromRow)]
+#[derive(FromRow)]
 struct EntityData {
     data: Vec<u8>,
 }

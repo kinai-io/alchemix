@@ -1995,11 +1995,21 @@ dependencies = [
  "tokio",
  "ts-rs",
  "uuid",
- "zbra-macros",
+ "zbra-entity-macros",
+ "zbra-flow-macros",
 ]
 
 [[package]]
-name = "zbra-macros"
+name = "zbra-entity-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "zbra-flow-macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",

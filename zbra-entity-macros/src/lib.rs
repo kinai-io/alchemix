@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, Ident, ItemStruct};
+use syn::{parse_macro_input, Field, Fields, Ident, ItemStruct};
 
 #[proc_macro_attribute]
 pub fn entity(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -175,6 +175,27 @@ pub fn entity(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         }
 
+    };
+
+    TokenStream::from(expanded)
+}
+
+#[proc_macro_attribute]
+pub fn entity_part(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as ItemStruct);
+
+    let name = &input.ident;
+    let fields = match input.fields {
+        Fields::Named(ref fields) => fields.named.clone(),
+        _ => panic!("Expected a struct with named fields"),
+    };
+    let vis = input.vis;
+    let expanded = quote! {
+        #[derive(Debug, Serialize, Deserialize, Clone, TS)]
+        #[ts(export)]
+        #vis struct #name {
+            #fields
+        }
     };
 
     TokenStream::from(expanded)
