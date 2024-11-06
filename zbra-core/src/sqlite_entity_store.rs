@@ -1,6 +1,11 @@
-use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, Pool, Sqlite};
+use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, FromRow, Pool, Sqlite};
 
 use crate::entity::{Entity, FieldIndex};
+
+#[derive(Debug, FromRow)]
+struct EntityData {
+    data: Vec<u8>,
+}
 
 pub struct SQLiteEntityStore {
     pool: Option<Pool<Sqlite>>,
@@ -125,6 +130,42 @@ impl SQLiteEntityStore {
         }
     }
 
+    pub async fn get_entities_of_kind<E: Entity>(&self, kind: &str, ids: &Vec<&str>) -> Vec<E> {
+        let sql_query = if ids.is_empty() {
+            let query = format!("SELECT data FROM entity WHERE kind = \'{}\'", kind);
+            query
+        } else {
+            let ids_str: Vec<String> = ids.iter().map(|k| format!("\'{}\'", k)).collect();
+            let keys_str = format!("({})", ids_str.join(", "));
+            let query = format!("SELECT data FROM entity WHERE id IN {}", keys_str);
+            query
+        };
+
+        if let Some(pool) = &self.pool {
+            let results: Vec<EntityData> =
+                sqlx::query_as(&sql_query).fetch_all(pool).await.unwrap();
+            Self::decode_entities(&results)
+        } else {
+            vec![]
+        }
+    }
+
+    pub async fn query_entities<E: Entity>(
+        &self,
+        kind: &str,
+        property_name: &str,
+        expr: &str,
+    ) -> Vec<E> {
+        let sql_query = format!("SELECT data FROM entity WHERE key IN ( SELECT key FROM properties WHERE kind = \'{}\' AND name=\'{}' AND {})", kind, property_name, expr);
+        if let Some(pool) = &self.pool {
+            let results: Vec<EntityData> =
+                sqlx::query_as(&sql_query).fetch_all(pool).await.unwrap();
+            Self::decode_entities(&results)
+        } else {
+            vec![]
+        }
+    }
+
     async fn create_tables(&self) {
         let create_tables_query = r#"
             CREATE TABLE IF NOT EXISTS entity (key TEXT not null PRIMARY KEY, id TEXT not null, kind TEXT not null, data BLOB not null);
@@ -145,6 +186,7 @@ impl SQLiteEntityStore {
             DROP INDEX IF EXISTS properties_values;
             "#;
         self.execute_batch(drop_tables_query).await;
+        self.create_tables().await;
     }
 
     pub async fn close(&self) {
@@ -161,11 +203,26 @@ impl SQLiteEntityStore {
         }
     }
 
-    fn entity_from_vec<E: Entity + 'static>(data: Vec<u8>) -> Result<E, ()> {
-        let value = match bincode::deserialize(&data) {
+    fn entity_from_vec<E: Entity>(data: &Vec<u8>) -> Result<E, ()> {
+        let value = match bincode::deserialize(data) {
             Ok(data) => Ok(data),
             Err(_) => Err(()),
         };
         value
+    }
+
+    fn decode_entities<E: Entity>(data: &Vec<EntityData>) -> Vec<E> {
+        let entities: Vec<E> = data
+            .iter()
+            .filter_map(|row| {
+                let decoded = Self::entity_from_vec::<E>(&row.data);
+                if let Ok(entity) = decoded {
+                    Some(entity)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        entities
     }
 }
