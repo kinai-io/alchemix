@@ -31,9 +31,7 @@ pub async fn test_hooks() {
     println!("Start");
     let mut dispatcher = Dispatcher::new();
 
-    dispatcher.register_entity_hook(Box::new(OnSaveHandler));
-    dispatcher.register_entity_hook(Box::new(LongSaveHandler));
-    dispatcher.register_entity_hook(Box::new(OnDeleteHandler));
+    dispatcher.register_entity_hooks(entity_hooks!(on_save, long_save, on_delete));
     
     let context = Arc::new(Context{});
 

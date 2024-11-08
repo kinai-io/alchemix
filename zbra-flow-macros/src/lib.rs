@@ -2,8 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Field, Fields, FnArg, Ident, ItemFn,
-    ItemStruct, Pat, PatType, Path, Type, TypeReference,
+    parse_macro_input, FnArg, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type, TypeReference
 };
 
 #[proc_macro_attribute]
@@ -182,21 +181,6 @@ pub fn entity_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-fn camel_to_snake_uppercase(camel: &str) -> String {
-    let mut snake = String::new();
-    for (i, c) in camel.chars().enumerate() {
-        if c.is_uppercase() {
-            if i != 0 {
-                snake.push('_');
-            }
-            snake.push(c);
-        } else {
-            snake.push(c.to_ascii_uppercase());
-        }
-    }
-    snake
-}
-
 #[proc_macro_attribute]
 pub fn entity_update(attr: TokenStream, item: TokenStream) -> TokenStream {
     entity_handler(attr, item, "Update")
@@ -287,6 +271,40 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
     TokenStream::from(expanded)
 }
 
+
+#[proc_macro]
+pub fn entity_hooks(input: TokenStream) -> TokenStream {
+    
+    let mut hook_names = vec![];
+    let metas_parser = syn::meta::parser(|meta| {
+        hook_names.push(meta.path.clone());
+        Ok(())
+    });
+
+    parse_macro_input!(input with metas_parser);
+
+    let mut camel_case_hooks = Vec::new();
+    for hook_name in &hook_names {
+        let camel_case_name = snake_to_camel(&hook_name.to_token_stream().to_string());
+        let handler_name = format!("{}Handler", camel_case_name);
+        let ident = Ident::new(&handler_name, Span::call_site());
+        camel_case_hooks.push(quote! {
+            hooks.push(Box::new(#ident));
+        });
+    }
+
+    let expanded = quote! {
+        {
+            let mut hooks: Vec<Box<dyn DataHookHandler>> = Vec::new();
+            #(#camel_case_hooks)*
+            hooks
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+
 fn get_param_signature(param: Option<&FnArg>) -> Option<(Ident, Box<Type>)> {
     if let Some(param) = param {
         match param {
@@ -307,6 +325,22 @@ fn get_param_signature(param: Option<&FnArg>) -> Option<(Ident, Box<Type>)> {
         None
     }
 }
+
+fn camel_to_snake_uppercase(camel: &str) -> String {
+    let mut snake = String::new();
+    for (i, c) in camel.chars().enumerate() {
+        if c.is_uppercase() {
+            if i != 0 {
+                snake.push('_');
+            }
+            snake.push(c);
+        } else {
+            snake.push(c.to_ascii_uppercase());
+        }
+    }
+    snake
+}
+
 
 fn snake_to_camel(snake_str: &str) -> String {
     let words = snake_str.split('_');

@@ -12,9 +12,15 @@ pub type Payload = dyn Any + Send + Sync + 'static;
 pub struct Context {}
 
 impl Context {
+
+    pub fn new() -> Self {
+        Self {}
+    }
+
     pub fn hello(&self) {
         println!("Hello");
     }
+    
 }
 
 
@@ -37,13 +43,15 @@ impl Dispatcher {
         }
     }
 
-    pub fn register_entity_hook(&mut self, handler: Box<dyn DataHookHandler>) {
+    pub fn register_entity_hooks(&mut self, hooks: Vec<Box<dyn DataHookHandler>>) {
+        for handler in hooks {
         let action = handler.get_action();
         let entity_kind = handler.get_entity_kind();
 
         let action_id = format!("{}_{}", action.get_text(), entity_kind);
         let handlers = self.data_hooks.entry(action_id).or_insert(vec![]);
         handlers.push(handler);
+        }
     }
 
     pub async fn dispatch_entity_hook<T: Entity>(

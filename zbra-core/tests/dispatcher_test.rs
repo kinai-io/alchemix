@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use zbra::{
-    dispatcher::{Context, DataHookHandler, Dispatcher, EntityAction, Payload, BoxFuture},
+    dispatcher::{BoxFuture, Context, DataHookHandler, Dispatcher, EntityAction, Payload},
     prelude::*,
 };
 
@@ -70,13 +70,11 @@ impl DataHookHandler for MyLongAddHandler {
     fn get_entity_kind(&self) -> &str {
         "User"
     }
-
 }
 
 pub struct MySubtractHandler;
 
 impl DataHookHandler for MySubtractHandler {
-
     fn handle(&self, context: Arc<Context>, value: Arc<Payload>) -> BoxFuture<'static, ()> {
         println!("sub");
         let future = sub(context, value);
@@ -100,9 +98,11 @@ pub async fn test_dispatcher() {
     let add_handler = MyAddHandler;
     let subtract_handler = MySubtractHandler;
 
-    dispatcher.register_entity_hook(Box::new(add_handler));
-    dispatcher.register_entity_hook(Box::new(MyLongAddHandler));
-    dispatcher.register_entity_hook(Box::new(subtract_handler));
+    dispatcher.register_entity_hooks(vec![
+        Box::new(add_handler),
+        Box::new(MyLongAddHandler),
+        Box::new(subtract_handler),
+    ]);
 
     let context = Arc::new(Context {});
 
