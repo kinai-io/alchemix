@@ -1,6 +1,6 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-pub trait Entity: Serialize + DeserializeOwned + Clone {
+pub trait Entity: Serialize + DeserializeOwned + Clone + Sync + Send + 'static{
     fn get_id(&self) -> &str;
     fn get_kind(&self) -> &str;
     fn get_key(&self) -> String;

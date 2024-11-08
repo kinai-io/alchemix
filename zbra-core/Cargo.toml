@@ -17,3 +17,5 @@ zbra-entity-macros = { path = "../zbra-entity-macros" }
 zbra-flow-macros = { path = "../zbra-flow-macros" }
 uuid = { version = "1.11.0", features = ["v4"] }
 bincode = "1.3.3"
+futures = "0.3.31"
+async-trait = "0.1.83"
