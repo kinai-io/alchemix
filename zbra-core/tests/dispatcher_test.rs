@@ -17,6 +17,12 @@ pub struct AppContext{
     secret: String
 }
 
+impl AppContext {
+
+    pub fn fake_op(&self) {
+        println!("Context : Fake op -> {}", self.secret);
+    }
+}
 
 async fn add(_context: Arc<DispatchPayload<'_>>, _value: Arc<Payload>) {
     println!("add");

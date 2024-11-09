@@ -106,7 +106,7 @@ impl ReactiveStore {
             RxAction::QueryProperty(kind, property_name, expression) => {
                 rx_context.query_property(&self, &kind, &property_name, &expression).await
             }
-            RxAction::Signal(signal) => {
+            RxAction::Signal(_signal) => {
                 RxResponse::SignalResponse()
             }
         }

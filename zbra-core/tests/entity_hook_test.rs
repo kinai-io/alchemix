@@ -22,7 +22,7 @@ pub struct AppContext{
 impl AppContext {
 
     pub fn fake_op(&self) {
-        println!("Context : Fake op");
+        println!("Context : Fake op -> {}", self.secret);
     }
 }
 
@@ -47,7 +47,7 @@ async fn on_delete(value: &Vec<User>, _store: &ReactiveStore) {
 }
 
 #[entity_update(TestEntity)]
-async fn on_derive(value: &Vec<TestEntity>, store: &ReactiveStore, context: &AppContext) {
+async fn on_derive(value: &Vec<TestEntity>, _store: &ReactiveStore, context: &AppContext) {
     // let context = store.get_context::<AppContext>();
     // context: &AppContext
     println!("On Derive : {:?}", value);
