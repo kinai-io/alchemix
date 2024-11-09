@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     dispatcher::{Context, Dispatcher, EntityAction},
     entity::Entity,
-    prelude::{SQLiteEntityStore, SafeDataHookHandler},
+    prelude::{EntitySchema, SQLiteEntityStore, SafeDataHookHandler},
 };
 
 pub struct ReactiveStore {
@@ -44,16 +44,12 @@ impl ReactiveStore {
             .await;
     }
 
-    pub async fn delete_entities<'a, T: Entity>(&'a self, entities: Vec<T>) {
-        let ids: Vec<&str> = entities.iter().map(|e| e.get_id()).collect();
-        println!("STORE : delete_entities => {:?}", &ids);
+    pub async fn delete_entities<T: Entity>(& self, kind: EntitySchema<T>, ids: &Vec<&str>) {
+        let removed_entities: Vec<T> = self.store.remove_entities(&kind.name, ids).await;
 
         let context = Arc::new(Context::new(self));
-        let keys: Vec<String> = entities.iter().map(|e| e.get_key()).collect();
-        let keys_str = keys.iter().map(|e| e.as_str()).collect();
-        self.store.remove_entities(&keys_str).await;
         self.dispatcher
-            .dispatch_entity_hook(context, EntityAction::Delete, entities)
+            .dispatch_entity_hook(context, EntityAction::Delete, removed_entities)
             .await;
     }
 

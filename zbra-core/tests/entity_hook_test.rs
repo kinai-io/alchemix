@@ -15,6 +15,7 @@ pub struct TestEntity {
 #[entity_update(User)]
 pub async fn on_save(_context: &Context<'_>, value: &Vec<User>) {
     println!("Save users : {:?}", value);
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 }
 
 #[entity_update(User)]
@@ -33,7 +34,6 @@ async fn on_delete(_context: &Context<'_>, value: &Vec<User>) {
 
 #[entity_update(TestEntity)]
 async fn on_derive(_context: &Context<'_>, value: &Vec<TestEntity>) {
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("On Derive : {:?}", value);
 }
 
@@ -60,6 +60,9 @@ pub async fn test_hooks() {
 
 }
 
+#[flow_context(User)]
+pub struct AppContext{}
+
 #[tokio::test]
 pub async fn test_reactive_store() {
     println!("Start");
@@ -70,11 +73,11 @@ pub async fn test_reactive_store() {
         .open()
         .await;
 
-    let user = User::new("u".to_string(), 1, vec![]);
+    let user = User::new("user_1".to_string(), 1, vec![]);
 
     store.save_entities(vec![user.clone()]).await;
 
-    store.delete_entities(vec![user.clone()]).await;
+    store.delete_entities(AppContext::USER, &vec![user.id.as_str()]).await;
 
     store.close().await;
 }

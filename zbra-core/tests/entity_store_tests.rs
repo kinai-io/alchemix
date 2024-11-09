@@ -7,6 +7,10 @@ pub struct User {
     data: Vec<u8>,
 }
 
+
+#[flow_context(User)]
+pub struct AppContext{}
+
 #[tokio::test]
 pub async fn test_entity_store() {
     let mut users = vec![];
@@ -40,7 +44,7 @@ pub async fn test_entity_store() {
     // println!("Users : {:?}", users);
     assert_eq!(users.len(), 3);
 
-    let keys = vec!["User#User_2", "User#User_5"];
-    datastore.remove_entities(&keys).await;
+    let keys = vec!["User_2", "User_5"];
+    datastore.remove_entities::<User>("User", &keys).await;
     datastore.close().await;
 }

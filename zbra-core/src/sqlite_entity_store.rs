@@ -111,8 +111,11 @@ impl SQLiteEntityStore {
         self.execute_batch(&update_index_query).await;
     }
 
-    pub async fn remove_entities(&self, keys: &Vec<&str>) {
-        let keys_strs: Vec<String> = keys.iter().map(|key| format!("\'{}\'", key)).collect();
+    pub async fn remove_entities<T: Entity>(&self, kind: &str, ids: &Vec<&str>) -> Vec<T>{
+        let stored_entities = self.get_entities_of_kind(kind, ids).await;
+
+        let keys_strs: Vec<String> = ids.iter().map(|id| format!("\'{}#{}\'", kind, id)).collect();
+
 
         let keys_str = format!("({})", keys_strs.join(", "));
 
@@ -122,6 +125,7 @@ impl SQLiteEntityStore {
 
         let delete_query = format!("{}{}", delete_entity_query, delete_properties_query);
         self.execute_batch(&delete_query).await;
+        stored_entities
     }
 
     async fn execute_batch(&self, sql_command: &str) {
