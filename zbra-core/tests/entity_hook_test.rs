@@ -18,6 +18,7 @@ pub struct AppContext{
     secret: String
 }
 
+
 impl AppContext {
 
     pub fn fake_op(&self) {
@@ -97,7 +98,6 @@ pub async fn test_reactive_store() {
     let user = User::new("user_1".to_string(), 1, vec![]);
 
     store.save_entities(vec![user.clone()]).await;
-
     store.delete_entities(AppContext::USER, &vec![user.id.as_str()]).await;
 
     store.close().await;

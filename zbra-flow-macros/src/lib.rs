@@ -41,6 +41,28 @@ pub fn flow_context(attr: TokenStream, item: TokenStream) -> TokenStream {
             #(#entities_entries)*
         }
 
+        #[async_trait]
+        impl RxContext for #struct_name {
+
+            async fn delete_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) {
+
+            }
+
+            async fn update_entities(&self, store: &ReactiveStore, kind: &str, ids: Vec<Value>) {
+
+            }
+
+            async fn get_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) -> RxResponse {
+                RxResponse::Success()
+            }
+
+            async fn query_property(&self, store: &ReactiveStore, kind: &str, property_name: &str, expression: &str) -> RxResponse {
+                RxResponse::Success()
+            }
+
+        }
+
+
     };
 
     TokenStream::from(expanded)

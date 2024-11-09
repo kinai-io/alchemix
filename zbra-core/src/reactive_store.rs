@@ -1,10 +1,28 @@
 use std::{any::Any, sync::Arc};
 
+use async_trait::async_trait;
+
 use crate::{
     dispatcher::{DispatchPayload, Dispatcher, EntityAction},
     entity::Entity,
+    rx::{RxAction, RxResponse},
     prelude::{EntitySchema, SQLiteEntityStore, SafeDataHookHandler},
 };
+
+use serde_json::Value;
+
+#[async_trait]
+pub trait RxContext {
+
+    async fn update_entities(&self, store: &ReactiveStore, kind: &str, ids: Vec<Value>);
+
+    async fn delete_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>);
+
+    async fn get_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) -> RxResponse;
+
+    async fn query_property(&self, store: &ReactiveStore, kind: &str, property_name: &str, expression: &str) -> RxResponse;
+
+}
 
 pub type SafeContext = dyn Any + Send + Sync + 'static;
 
@@ -15,7 +33,7 @@ pub struct ReactiveStore {
 }
 
 impl ReactiveStore {
-    pub fn new<T: Send + Sync + 'static>(context: T, path: &str) -> Self {
+    pub fn new<T: Any + RxContext + Send + Sync + 'static>(context: T, path: &str) -> Self {
         Self {
             dispatcher: Dispatcher::new(),
             store: SQLiteEntityStore::new(path),
@@ -23,7 +41,7 @@ impl ReactiveStore {
         }
     }
 
-    pub fn get_context<T: 'static>(&self) -> &T {
+    pub fn get_context<T: RxContext + 'static>(&self) -> &T {
         &self.context.downcast_ref().unwrap()
     }
 
@@ -51,10 +69,46 @@ impl ReactiveStore {
 
     pub async fn delete_entities<T: Entity>(&self, kind: EntitySchema<T>, ids: &Vec<&str>) {
         let removed_entities: Vec<T> = self.store.remove_entities(&kind.name, ids).await;
-
         let context = Arc::new(DispatchPayload::new(self));
         self.dispatcher
             .dispatch_entity_hook(context, EntityAction::Delete, removed_entities)
             .await;
+    }
+
+    pub async fn get_entities<T: Entity>(&self, kind: EntitySchema<T>, ids: &Vec<&str>) -> Vec<T> {
+        self.store.get_entities_of_kind(&kind.name, ids).await
+    }
+
+    pub async fn query_property<T: Entity>(&self, kind: EntitySchema<T>, property_name: &str, expression: &str) -> Vec<T> {
+        self.store.query_entities(&kind.name, property_name, expression).await
+    }
+
+    fn get_rx_context(&self) -> &dyn RxContext {
+        *self.context.downcast_ref::<&dyn RxContext>().unwrap()
+    }
+
+    pub async fn execute_action(&self, action: RxAction) -> RxResponse {
+        let rx_context = self.get_rx_context();
+        match action {
+            RxAction::UpdateEntities(kind, values) => {
+                rx_context.update_entities(&self, &kind, values).await;
+                RxResponse::Success()
+            }
+            RxAction::DeleteEntities(kind, ids) => {
+                let ids_ref = ids.iter().map(|id| id.as_str()).collect();
+                rx_context.delete_entities(&self, &kind, &ids_ref).await;
+                RxResponse::Success()
+            }
+            RxAction::QueryIds(kind, ids) => {
+                let ids_ref = ids.iter().map(|id| id.as_str()).collect();
+                rx_context.get_entities(&self, &kind, &ids_ref).await
+            }
+            RxAction::QueryProperty(kind, property_name, expression) => {
+                rx_context.query_property(&self, &kind, &property_name, &expression).await
+            }
+            RxAction::Signal(signal) => {
+                RxResponse::SignalResponse()
+            }
+        }
     }
 }

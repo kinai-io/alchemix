@@ -13,6 +13,7 @@ pub use crate::entity_schema::EntitySchema;
 
 pub use crate::dispatcher::*;
 pub use crate::reactive_store::*;
+pub use crate::rx::*;
 
 pub use zbra_entity_macros::*;
 pub use zbra_flow_macros::*;

@@ -7,6 +7,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::entity::Entity;
+use crate::prelude::RxContext;
 use crate::reactive_store::ReactiveStore;
 
 
@@ -19,7 +20,7 @@ impl<'a> DispatchPayload<'a> {
         Self { store: r }
     }
 
-    pub fn get_context<T: 'static>(&self) -> &T {
+    pub fn get_context<T: RxContext + 'static>(&self) -> &T {
         self.store.get_context()
     }
 }
