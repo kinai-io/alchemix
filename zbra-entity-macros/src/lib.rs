@@ -7,8 +7,6 @@ pub fn entity(attr: TokenStream, item: TokenStream) -> TokenStream {
     // let args = parse_macro_input!(args as MetaList);
     let input = parse_macro_input!(item as ItemStruct);
     let struct_name = &input.ident;
-
-    // let attri: Attribute = parse_macro_input!(attr as );
     let vis = input.vis;
 
     let struct_name_str = struct_name.to_string();
@@ -31,10 +29,10 @@ pub fn entity(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // eprintln!("Indexed fields : {:?}", &indexed_field_name);
 
-    let mut fields = match input.fields {
-        Fields::Named(ref fields) => fields.named.clone(),
-        _ => panic!("Expected a struct with named fields"),
-    };
+    // let fields = match input.fields {
+    //     Fields::Named(ref fields) => fields.named.clone(),
+    //     _ => panic!("Expected a struct with named fields"),
+    // };
 
     let user_fields = match input.fields {
         Fields::Named(ref fields) => fields.named.clone(),
@@ -46,31 +44,6 @@ pub fn entity(attr: TokenStream, item: TokenStream) -> TokenStream {
         .map(|f| f.ident.as_ref().unwrap())
         .collect();
     let user_field_types: Vec<&syn::Type> = user_fields.iter().map(|f| &f.ty).collect();
-
-    let id_field: Field = syn::parse_quote! {
-        pub id: String
-    };
-    fields.push(id_field);
-
-    let kind_field: Field = syn::parse_quote! {
-        pub kind: String
-    };
-    fields.push(kind_field);
-
-    // let user_fields_with_id: Vec<_> = fields
-    //     .iter()
-    //     .filter(|field| {
-    //         let field_name = field.ident.as_ref().unwrap().to_string();
-    //         field_name != "kind"
-    //     })
-    //     .collect();
-
-    // let user_field_names_with_id: Vec<&Ident> = user_fields_with_id
-    //     .iter()
-    //     .map(|f| f.ident.as_ref().unwrap())
-    //     .collect();
-    // let user_field_types_with_id: Vec<&syn::Type> =
-    //     user_fields_with_id.iter().map(|f| &f.ty).collect();
 
     let index_fields = match input.fields {
         Fields::Named(ref fields) => fields.named.clone(),
@@ -128,12 +101,27 @@ pub fn entity(attr: TokenStream, item: TokenStream) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
+    let struct_decl = if user_fields.len() == 0 {
+        quote! {
+            #vis struct #struct_name {
+                id: String,
+                kind: String
+            }
+        }
+    } else {
+        quote! {
+            #vis struct #struct_name {
+                id: String,
+                kind: String,
+                #user_fields
+            }
+        }
+    };
     let expanded = quote! {
         #[derive(Debug, Serialize, Deserialize, Clone, TS)]
         #[ts(export)]
-        #vis struct #struct_name {
-            #fields
-        }
+
+        #struct_decl
 
         impl #struct_name {
 

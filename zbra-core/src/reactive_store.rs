@@ -3,10 +3,7 @@ use std::{any::Any, sync::Arc};
 use async_trait::async_trait;
 
 use crate::{
-    dispatcher::{DispatchPayload, Dispatcher, EntityAction},
-    entity::Entity,
-    rx::{RxAction, RxResponse},
-    prelude::{EntitySchema, SQLiteEntityStore, SafeDataHookHandler},
+    dispatcher::{DispatchPayload, Dispatcher, EntityAction}, entity::Entity, prelude::{EntitySchema, SQLiteEntityStore, SafeDataHookHandler, SafeSignalHookHandler}, rx::{RxAction, RxResponse}
 };
 
 use serde_json::Value;
@@ -59,6 +56,11 @@ impl ReactiveStore {
         self
     }
 
+    pub fn with_signal_hooks(mut self, hooks: Vec<Box<SafeSignalHookHandler>>) -> Self {
+        self.dispatcher.register_signal_hooks(hooks);
+        self
+    }
+
     pub async fn save_entities<'a, T: Entity>(&'a self, entities: Vec<T>) {
         let context = Arc::new(DispatchPayload::new(self));
         self.store.update_entities(&entities).await;
@@ -81,6 +83,11 @@ impl ReactiveStore {
 
     pub async fn query_property<T: Entity>(&self, kind: EntitySchema<T>, property_name: &str, expression: &str) -> Vec<T> {
         self.store.query_entities(&kind.name, property_name, expression).await
+    }
+
+    pub async fn signal<T:Entity, R: Entity>(&self, signal_entity: T) -> Result<R, String> {
+        let context = Arc::new(DispatchPayload::new(self));
+        self.dispatcher.dispatch_signal_hook(context, signal_entity).await
     }
 
     fn get_rx_context(&self) -> &dyn RxContext {

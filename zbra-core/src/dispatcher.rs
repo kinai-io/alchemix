@@ -10,7 +10,6 @@ use crate::entity::Entity;
 use crate::prelude::RxContext;
 use crate::reactive_store::ReactiveStore;
 
-
 pub struct DispatchPayload<'a> {
     pub store: &'a ReactiveStore,
 }
@@ -29,6 +28,19 @@ pub type Payload = dyn Any + Send + Sync;
 
 pub type SafeDataHookHandler = dyn DataHookHandler + Send + Sync;
 
+pub type SafeSignalHookHandler = dyn SignalHookHandler + Send + Sync;
+
+#[async_trait]
+pub trait SignalHookHandler {
+    async fn handle(
+        &self,
+        context: Arc<DispatchPayload<'_>>,
+        value: Arc<Payload>,
+    ) -> Result<Box<Payload>, String>;
+
+    fn get_name(&self) -> String;
+}
+
 #[async_trait]
 pub trait DataHookHandler {
     async fn handle(&self, context: Arc<DispatchPayload<'_>>, value: Arc<Payload>);
@@ -38,12 +50,14 @@ pub trait DataHookHandler {
 
 pub struct Dispatcher {
     data_hooks: HashMap<String, Vec<Box<SafeDataHookHandler>>>,
+    signal_hook: HashMap<String, Box<SafeSignalHookHandler>>,
 }
 
 impl Dispatcher {
     pub fn new() -> Self {
         Dispatcher {
             data_hooks: HashMap::new(),
+            signal_hook: HashMap::new(),
         }
     }
 
@@ -58,8 +72,37 @@ impl Dispatcher {
             let handlers = data_hooks.entry(action_id).or_insert(vec![]);
             handlers.push(handler);
         }
-        let hooks: Vec<&str> = data_hooks.iter().map(|(k, _)| k.as_str()).collect();
-        println!("Hooks : {:?}", hooks);
+        // let hooks: Vec<&str> = data_hooks.iter().map(|(k, _)| k.as_str()).collect();
+        // println!("Hooks : {:?}", hooks);
+    }
+
+    pub fn register_signal_hooks(&mut self, hooks: Vec<Box<SafeSignalHookHandler>>) {
+        for handler in hooks {
+            self.signal_hook.insert(handler.get_name(), handler);
+        }
+    }
+
+    pub async fn dispatch_signal_hook<'a, T: Entity, R: Entity>(
+        &'a self,
+        context: Arc<DispatchPayload<'a>>,
+        signal_entity: T,
+    ) -> Result<R, String>{
+        if let Some(handler) =  self.signal_hook.get(signal_entity.get_kind()) {
+            let value_ref = Arc::new(signal_entity);
+            let response = handler.handle(context, value_ref).await;
+            match response {
+                Ok(data) => {
+                    if let Ok(data) = data.downcast::<R>() {
+                        Ok(*data)
+                    }else {
+                        Err("Downcast error".to_string())
+                    }
+                },
+                Err(message) => Err(message)
+            }
+        }else {
+            Err("Unable to find signal handler".to_string())
+        }
     }
 
     pub async fn dispatch_entity_hook<'a, T: Entity>(
