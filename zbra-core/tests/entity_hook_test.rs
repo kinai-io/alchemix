@@ -18,6 +18,13 @@ pub struct AppContext{
     secret: String
 }
 
+impl AppContext {
+
+    pub fn fake_op(&self) {
+        println!("Context : Fake op");
+    }
+}
+
 #[entity_update(User)]
 pub async fn on_save(value: &Vec<User>, _store: &ReactiveStore) {
     println!("Save users : {:?}", value);
@@ -44,6 +51,7 @@ async fn on_derive(value: &Vec<TestEntity>, store: &ReactiveStore, context: &App
     // context: &AppContext
     println!("On Derive : {:?}", value);
 
+    context.fake_op();
     println!("context : {}", context.secret);
 }
 
