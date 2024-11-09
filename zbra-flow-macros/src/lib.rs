@@ -21,18 +21,8 @@ pub fn flow_context(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // eprintln!("Factory macro : {:?}", classes);
 
-    let mut match_arms = Vec::new();
-    for class in &classes {
-        let class_name = class.get_ident().unwrap();
-        match_arms.push(quote! {
-            stringify!(#class_name) => {
-                let saved_node:#class_name = serde_json::from_value(json_value).unwrap();
-                ns.save_entity(saved_node)
-            },
-        });
-    }
-
     let mut entities_entries = Vec::new();
+    
     for class in &classes {
         let class_name = class.get_ident().unwrap();
         let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
@@ -40,69 +30,6 @@ pub fn flow_context(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         entities_entries.push(quote! {
             pub const #class_name_sk: EntitySchema<#class_name> = EntitySchema{ name: stringify!(#class_name), _marker: PhantomData};
-        });
-    }
-
-    let mut save_match_arms = Vec::new();
-    for class in &classes {
-        let class_name = class.get_ident().unwrap();
-        save_match_arms.push(quote! {
-            stringify!(#class_name) => {
-                let nodes:Vec<#class_name> = data.iter().map(|d| serde_json::from_value(d.clone()).unwrap()).collect();
-                ns.save_entities(&nodes)
-            },
-        });
-    }
-
-    let mut get_entities_match_arms = Vec::new();
-    for class in &classes {
-        let class_name = class.get_ident().unwrap();
-        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
-        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
-
-        get_entities_match_arms.push(quote! {
-            stringify!(#class_name) => {
-                let entities = ns.get_entities_of_kind(#struct_name::#class_name_sk, ids);
-                serde_json::to_value(&entities).unwrap()
-            },
-        });
-    }
-
-    let mut query_property_match_arms = Vec::new();
-    for class in &classes {
-        let class_name = class.get_ident().unwrap();
-        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
-        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
-
-        query_property_match_arms.push(quote! {
-            stringify!(#class_name) => {
-                let entities = ns.query_property(#struct_name::#class_name_sk, name, expr);
-                serde_json::to_value(&entities).unwrap()
-            },
-        });
-    }
-
-    let mut delete_match_arms = Vec::new();
-    for class in &classes {
-        let class_name = class.get_ident().unwrap();
-        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
-        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
-
-        delete_match_arms.push(quote! {
-            stringify!(#class_name) => {
-                ns.delete_entities(#struct_name::#class_name_sk, ids);
-            },
-        });
-    }
-
-    let mut signal_match_arms = Vec::new();
-    for class in &classes {
-        let class_name = class.get_ident().unwrap();
-        signal_match_arms.push(quote! {
-            stringify!(#class_name) => {
-                let saved_node:#class_name = serde_json::from_value(data).unwrap();
-                ns.execute(saved_node)
-            },
         });
     }
 
