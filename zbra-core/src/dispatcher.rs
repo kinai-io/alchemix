@@ -2,46 +2,37 @@
 
 use std::any::Any;
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
 
-use futures::executor::block_on;
-use futures::join;
+use async_trait::async_trait;
 
 use crate::entity::Entity;
 use crate::reactive_store::ReactiveStore;
 
-pub type Payload = dyn Any + Send + Sync + 'static;
+
 pub struct Context<'a> {
-    store: &'a ReactiveStore,
+    pub store: &'a ReactiveStore,
 }
 
 impl<'a> Context<'a> {
     pub fn new(r: &'a ReactiveStore) -> Self {
         Self { store: r }
     }
-
-    pub fn hello(&self) {
-        println!("Hello");
-    }
-
-    pub async fn save_entities<T: Entity>(&self, entities: Vec<T>) {
-        // let store = self.store.lock().unwrap();
-        self.store.save_entities(entities).await
-    }
 }
 
+pub type Payload = dyn Any + Send + Sync;
+
+pub type SafeDataHookHandler = dyn DataHookHandler + Send + Sync;
+
+#[async_trait]
 pub trait DataHookHandler {
-    fn handle<'a>(&'a self, context: Arc<Context<'a>>, value: Arc<Payload>) -> BoxFuture<'a, ()>;
+    async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>);
     fn get_action(&self) -> EntityAction;
     fn get_entity_kind(&self) -> &str;
 }
 
-pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
-
 pub struct Dispatcher {
-    data_hooks: HashMap<String, Vec<Box<dyn DataHookHandler + Send + Sync + 'static>>>,
+    data_hooks: HashMap<String, Vec<Box<SafeDataHookHandler>>>,
 }
 
 impl Dispatcher {
@@ -51,7 +42,7 @@ impl Dispatcher {
         }
     }
 
-    pub fn register_entity_hooks(&mut self, hooks: Vec<Box<dyn DataHookHandler + Send + Sync>>) {
+    pub fn register_entity_hooks(&mut self, hooks: Vec<Box<SafeDataHookHandler>>) {
         let data_hooks = &mut self.data_hooks;
         for handler in hooks {
             let action = handler.get_action();
@@ -72,7 +63,6 @@ impl Dispatcher {
         action: EntityAction,
         value: Vec<T>,
     ) {
-        
         let entity_kind = if let Some(entity) = value.first() {
             Some(entity.get_kind().to_string())
         } else {
@@ -80,29 +70,20 @@ impl Dispatcher {
         };
         if let Some(entity_kind) = entity_kind {
             let action_key = format!("{}_{}", action.get_text(), entity_kind);
-
-            println!("Dispatch : {}", action_key);
-
             let data_hooks = &self.data_hooks;
             if let Some(handlers) = data_hooks.get(&action_key) {
-                let boxed = Arc::new(value);
-
-
-                let mut futures: Vec<BoxFuture<'a, ()>> = vec![];
+                let value_ref = Arc::new(value);
+                let mut futures = vec![];
                 for handler in handlers {
-                    futures.push(handler.handle(context.clone(), boxed.clone()));
+                    // handler.handle(context.clone(), value_ref.clone()).await;
+                    let future = handler.handle(context.clone(), value_ref.clone());
+                    futures.push(future);
                 }
                 futures::future::join_all(futures).await;
-
-                // for handler in handlers {
-                //     block_on(handler.handle(context.clone(), boxed.clone()));
-                // }
             }
         }
     }
 }
-
-unsafe impl Send for Dispatcher {}
 
 const UPDATE_ENTITY_ACTION: &str = "update";
 const DELETE_ENTITY_ACTION: &str = "delete";

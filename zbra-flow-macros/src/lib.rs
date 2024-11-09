@@ -246,17 +246,18 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
 
         pub struct #handler_name;
 
+        #[async_trait]
         impl DataHookHandler for #handler_name {
 
-            fn handle<'a>(&'a self, context: Arc<Context<'a>>, value: Arc<Payload>) -> BoxFuture<'a, ()> {
+            async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>){
                 if let Ok(data) = value.downcast::<Vec<#entity_kind>>() {
                     // println!("Invoke");
                     // let future = #wrapper_fn_name(context, data);
-                    block_on(#wrapper_fn_name(context, data));
-                    Box::pin(noop())
+                    #wrapper_fn_name(context, data).await;
+                    // Box::pin(noop())
                 }else {
                     println!("Downcast Error");
-                    Box::pin(noop())
+                    // Box::pin(noop())
                 }
             }
 

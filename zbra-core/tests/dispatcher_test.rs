@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+
 // use futures::executor::block_on;
 use zbra::{
-    dispatcher::{BoxFuture, Context, DataHookHandler, Dispatcher, EntityAction, Payload},
+    dispatcher::{Context, DataHookHandler, Dispatcher, EntityAction, Payload},
     prelude::*, reactive_store::ReactiveStore,
 };
 
@@ -31,7 +32,6 @@ async fn add(context: Arc<Context<'_>>, value: Arc<Payload>) {
 async fn long_add(context: &Context<'_>, value: &User) {
     println!("long add : {:?}", value);
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-    context.hello();
     println!("long add Complete");
 }
 
@@ -40,16 +40,16 @@ async fn long_add_wrapper(context: Arc<Context<'_>>, value: Arc<User>) {
 }
 
 async fn sub<'a>(context: Arc<Context<'a>>, value: Arc<Payload>) {
-    context.hello();
-    context.save_entities(vec![TestEntity::new(12)]).await;
+    context.store.save_entities(vec![TestEntity::new(12)]).await;
 }
 
 pub struct MyAddHandler;
 
+#[async_trait]
 impl DataHookHandler for MyAddHandler {
-    fn handle<'a>(&'a self, context: Arc<Context<'a>>, value: Arc<Payload>) -> BoxFuture<'a, ()> {
-        let future = add(context, value);
-        Box::pin(future)
+
+    async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>) {
+        add(context, value).await;
     }
 
     fn get_action(&self) -> EntityAction {
@@ -63,13 +63,12 @@ impl DataHookHandler for MyAddHandler {
 
 pub struct MyLongAddHandler;
 
+#[async_trait]
 impl DataHookHandler for MyLongAddHandler {
-    fn handle<'a>(&'a self, context: Arc<Context<'a>>, value: Arc<Payload>) -> BoxFuture<'a, ()> {
+
+    async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>){
         if let Ok(data) = value.downcast::<User>() {
-            let future = long_add_wrapper(context, data);
-            Box::pin(future)
-        } else {
-            Box::pin(noop())
+            long_add_wrapper(context, data).await;
         }
     }
 
@@ -84,13 +83,11 @@ impl DataHookHandler for MyLongAddHandler {
 
 pub struct MySubtractHandler;
 
+#[async_trait]
 impl DataHookHandler for MySubtractHandler {
-    fn handle<'a>(&'a self, context: Arc<Context<'a>>, value: Arc<Payload>) -> BoxFuture<'a, ()> {
+    async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>){
         println!("sub");
-        
-        block_on(sub(context.clone(), value.clone()));
-        let future = add(context, value);
-        Box::pin(future)
+        sub(context.clone(), value.clone()).await;
     }
     fn get_action(&self) -> EntityAction {
         EntityAction::Update
@@ -116,7 +113,9 @@ pub async fn test_dispatcher() {
         Box::new(subtract_handler),
     ]);
 
-    let store = ReactiveStore::new();
+    let db_path = "test-data/out/entity-store.db";
+    let store = ReactiveStore::new(db_path);
+
     let context = Arc::new(Context::new(&store));
 
     let user = User::new("u".to_string(), 1, vec![]);

@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 
 use crate::{
-    dispatcher::{self, Context, Dispatcher, EntityAction},
+    dispatcher::{Context, Dispatcher, EntityAction},
     entity::Entity,
-    prelude::{DataHookHandler, SQLiteEntityStore},
+    prelude::{DataHookHandler, SQLiteEntityStore, SafeDataHookHandler},
 };
 
 pub struct ReactiveStore {
@@ -14,10 +14,10 @@ pub struct ReactiveStore {
 }
 
 impl ReactiveStore {
-    pub fn new() -> Self {
+    pub fn new(path: &str) -> Self {
         Self {
             dispatcher: RwLock::new(Dispatcher::new()),
-            store: RwLock::new(SQLiteEntityStore::new("test-data/out/entity-store.db")),
+            store: RwLock::new(SQLiteEntityStore::new(path)),
         }
     }
 
@@ -31,20 +31,15 @@ impl ReactiveStore {
         let _ = store.close().await;
     }
 
-    pub async fn with_entity_hooks(
-        self,
-        hooks: Vec<Box<dyn DataHookHandler + Send + Sync>>,
-    ) -> Self {
-        {
-            let mut dispatcher = self.dispatcher.write().await;
-            dispatcher.register_entity_hooks(hooks);
-        }
-        self
+    pub async fn add_entity_hooks(&self, hooks: Vec<Box<SafeDataHookHandler>>) {
+        let mut dispatcher = self.dispatcher.write().await;
+        dispatcher.register_entity_hooks(hooks);
     }
 
     pub async fn save_entities<'a, T: Entity>(&'a self, entities: Vec<T>) {
         let ids: Vec<&str> = entities.iter().map(|e| e.get_id()).collect();
         println!("STORE : save_entities => {:?}", &ids);
+
         let context = Arc::new(Context::new(self));
         let store = self.store.read().await;
         store.update_entities(&entities).await;
@@ -55,6 +50,9 @@ impl ReactiveStore {
     }
 
     pub async fn delete_entities<'a, T: Entity>(&'a self, entities: Vec<T>) {
+        let ids: Vec<&str> = entities.iter().map(|e| e.get_id()).collect();
+        println!("STORE : delete_entities => {:?}", &ids);
+
         let context = Arc::new(Context::new(self));
         let keys: Vec<String> = entities.iter().map(|e| e.get_key()).collect();
         let keys_str = keys.iter().map(|e| e.as_str()).collect();
@@ -65,4 +63,5 @@ impl ReactiveStore {
             .dispatch_entity_hook(context, EntityAction::Delete, entities)
             .await;
     }
+
 }

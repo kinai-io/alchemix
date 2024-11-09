@@ -5,13 +5,13 @@ pub use uuid::Uuid;
 pub use std::marker::PhantomData;
 pub use std::sync::Arc;
 pub use futures::executor::block_on;
-
+pub use async_trait::async_trait;
 
 pub use crate::entity::{Entity, FieldIndex};
 pub use crate::sqlite_entity_store::SQLiteEntityStore;
 pub use crate::entity_schema::EntitySchema;
 
-pub use crate::dispatcher::{DataHookHandler, Payload, BoxFuture, noop};
+pub use crate::dispatcher::{DataHookHandler, Payload, SafeDataHookHandler, noop};
 
 pub use zbra_entity_macros::*;
 pub use zbra_flow_macros::*;
