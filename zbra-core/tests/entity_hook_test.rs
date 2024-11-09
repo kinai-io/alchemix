@@ -55,21 +55,24 @@ pub async fn test_hooks() {
     let user = User::new("u".to_string(), 1, vec![]);
 
     // Dispatch actions
-    dispatcher.dispatch_entity_hook(context.clone(), EntityAction::Update, vec![user.clone()]).await;
-    dispatcher.dispatch_entity_hook(context.clone(), EntityAction::Delete, vec![user.clone()]).await;
+    dispatcher
+        .dispatch_entity_hook(context.clone(), EntityAction::Update, vec![user.clone()])
+        .await;
+    dispatcher
+        .dispatch_entity_hook(context.clone(), EntityAction::Delete, vec![user.clone()])
+        .await;
 }
 
 #[tokio::test]
 pub async fn test_reactive_store() {
     println!("Start");
     let db_path = "test-data/out/entity-store.db";
+
+    let store = ReactiveStore::new(db_path).open().await;
     
-    let store = ReactiveStore::new(db_path);
     store
         .add_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive))
         .await;
-    store.open().await;
-
 
     let user = User::new("u".to_string(), 1, vec![]);
 
@@ -78,5 +81,3 @@ pub async fn test_reactive_store() {
 
     store.close().await;
 }
-
-

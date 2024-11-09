@@ -5,30 +5,29 @@ use tokio::sync::RwLock;
 use crate::{
     dispatcher::{Context, Dispatcher, EntityAction},
     entity::Entity,
-    prelude::{DataHookHandler, SQLiteEntityStore, SafeDataHookHandler},
+    prelude::{SQLiteEntityStore, SafeDataHookHandler},
 };
 
 pub struct ReactiveStore {
     dispatcher: RwLock<Dispatcher>,
-    store: RwLock<SQLiteEntityStore>,
+    store: SQLiteEntityStore,
 }
 
 impl ReactiveStore {
     pub fn new(path: &str) -> Self {
         Self {
             dispatcher: RwLock::new(Dispatcher::new()),
-            store: RwLock::new(SQLiteEntityStore::new(path)),
+            store: SQLiteEntityStore::new(path),
         }
     }
 
-    pub async fn open(&self) {
-        let mut store = self.store.write().await;
-        let _ = store.open().await;
+    pub async fn open(mut self) -> Self{
+        let _ = self.store.open().await;
+        self
     }
 
     pub async fn close(&self) {
-        let store = self.store.read().await;
-        let _ = store.close().await;
+        let _ = self.store.close().await;
     }
 
     pub async fn add_entity_hooks(&self, hooks: Vec<Box<SafeDataHookHandler>>) {
@@ -41,8 +40,7 @@ impl ReactiveStore {
         println!("STORE : save_entities => {:?}", &ids);
 
         let context = Arc::new(Context::new(self));
-        let store = self.store.read().await;
-        store.update_entities(&entities).await;
+        self.store.update_entities(&entities).await;
         let dispatcher = self.dispatcher.read().await;
         dispatcher
             .dispatch_entity_hook(context, EntityAction::Update, entities)
@@ -56,8 +54,7 @@ impl ReactiveStore {
         let context = Arc::new(Context::new(self));
         let keys: Vec<String> = entities.iter().map(|e| e.get_key()).collect();
         let keys_str = keys.iter().map(|e| e.as_str()).collect();
-        let store = self.store.read().await;
-        store.remove_entities(&keys_str).await;
+        self.store.remove_entities(&keys_str).await;
         let dispatcher = self.dispatcher.read().await;
         dispatcher
             .dispatch_entity_hook(context, EntityAction::Delete, entities)
