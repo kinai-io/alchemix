@@ -13,7 +13,7 @@ pub struct TestEntity {
 }
 
 
-async fn add(_context: Arc<Context<'_>>, _value: Arc<Payload>) {
+async fn add(_context: Arc<DispatchPayload<'_>>, _value: Arc<Payload>) {
     println!("add");
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     // context.hello();
@@ -22,17 +22,17 @@ async fn add(_context: Arc<Context<'_>>, _value: Arc<Payload>) {
 
 }
 
-async fn long_add(_context: &Context<'_>, value: &User) {
+async fn long_add(_context: &DispatchPayload<'_>, value: &User) {
     println!("long add : {:?}", value);
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     println!("long add Complete");
 }
 
-async fn long_add_wrapper(context: Arc<Context<'_>>, value: Arc<User>) {
+async fn long_add_wrapper(context: Arc<DispatchPayload<'_>>, value: Arc<User>) {
     long_add(&context, &value).await;
 }
 
-async fn sub<'a>(context: Arc<Context<'a>>, _value: Arc<Payload>) {
+async fn sub<'a>(context: Arc<DispatchPayload<'a>>, _value: Arc<Payload>) {
     context.store.save_entities(vec![TestEntity::new(12)]).await;
 }
 
@@ -41,7 +41,7 @@ pub struct MyAddHandler;
 #[async_trait]
 impl DataHookHandler for MyAddHandler {
 
-    async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>) {
+    async fn handle(&self, context: Arc<DispatchPayload<'_>>, value: Arc<Payload>) {
         add(context, value).await;
     }
 
@@ -59,7 +59,7 @@ pub struct MyLongAddHandler;
 #[async_trait]
 impl DataHookHandler for MyLongAddHandler {
 
-    async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>){
+    async fn handle(&self, context: Arc<DispatchPayload<'_>>, value: Arc<Payload>){
         if let Ok(data) = value.downcast::<User>() {
             long_add_wrapper(context, data).await;
         }
@@ -78,7 +78,7 @@ pub struct MySubtractHandler;
 
 #[async_trait]
 impl DataHookHandler for MySubtractHandler {
-    async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>){
+    async fn handle(&self, context: Arc<DispatchPayload<'_>>, value: Arc<Payload>){
         println!("sub");
         sub(context.clone(), value.clone()).await;
     }
@@ -109,7 +109,7 @@ pub async fn test_dispatcher() {
     let db_path = "test-data/out/entity-store.db";
     let store = ReactiveStore::new(db_path);
 
-    let context = Arc::new(Context::new(&store));
+    let context = Arc::new(DispatchPayload::new(&store));
 
     let user = User::new("u".to_string(), 1, vec![]);
     // Dispatch actions

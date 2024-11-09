@@ -10,13 +10,17 @@ use crate::entity::Entity;
 use crate::reactive_store::ReactiveStore;
 
 
-pub struct Context<'a> {
+pub struct DispatchPayload<'a> {
     pub store: &'a ReactiveStore,
 }
 
-impl<'a> Context<'a> {
+impl<'a> DispatchPayload<'a> {
     pub fn new(r: &'a ReactiveStore) -> Self {
         Self { store: r }
+    }
+
+    pub fn get_context<T: 'static>(&self) -> Option<&T> {
+        self.store.get_context()
     }
 }
 
@@ -26,7 +30,7 @@ pub type SafeDataHookHandler = dyn DataHookHandler + Send + Sync;
 
 #[async_trait]
 pub trait DataHookHandler {
-    async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>);
+    async fn handle(&self, context: Arc<DispatchPayload<'_>>, value: Arc<Payload>);
     fn get_action(&self) -> EntityAction;
     fn get_entity_kind(&self) -> &str;
 }
@@ -59,7 +63,7 @@ impl Dispatcher {
 
     pub async fn dispatch_entity_hook<'a, T: Entity>(
         &'a self,
-        context: Arc<Context<'a>>,
+        context: Arc<DispatchPayload<'a>>,
         action: EntityAction,
         value: Vec<T>,
     ) {

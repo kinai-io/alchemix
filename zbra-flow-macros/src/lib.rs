@@ -67,25 +67,21 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
         Ok(())
     });
     parse_macro_input!(attr with metas_parser);
-    let entity_kind = &metas.first().unwrap();
 
+    let entity_kind = &metas.first().unwrap();
     let entity_kind_str = entity_kind.to_token_stream().to_string();
 
-    let first_param_sig = get_param_signature(input.sig.inputs.first());
-    if first_param_sig.is_none() {
-        return TokenStream::from(quote! {
-            compile_error!("Function has no parameters");
-        });
-    }
-    let (first_param_name, first_param_type) = first_param_sig.unwrap();
+    let context_param_sig = get_param_signature(input.sig.inputs.get(2));
+   
+    // let (context_param_name, context_param_type) = context_param_sig.unwrap();
 
-    let second_param_sig = get_param_signature(input.sig.inputs.get(1));
-    if second_param_sig.is_none() {
+    let value_param_sig = get_param_signature(input.sig.inputs.get(0));
+    if value_param_sig.is_none() {
         return TokenStream::from(quote! {
             compile_error!("Function has no parameters");
         });
     }
-    let (second_param_name, second_param_type) = second_param_sig.unwrap();
+    let (value_param_name, value_param_type) = value_param_sig.unwrap();
 
     let wrapper_name = format!("{}_wrapper", fn_name);
     let wrapper_fn_name = Ident::new(&wrapper_name, Span::call_site());
@@ -94,12 +90,26 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
     let handler_name_str = format!("{}Handler", cc_fn_name);
     let handler_name = Ident::new(&handler_name_str, Span::call_site());
 
+    let payload_type_name = Ident::new("DispatchPayload", Span::call_site());
+
+    let invocation = if let Some((context_param_name, context_param_type)) = context_param_sig {
+        quote! {
+            if let Some(context) = payload.store.get_context::<#context_param_type>() {
+                #fn_name(&#value_param_name, payload.store, context).await;
+            }
+        }
+    }else {
+        quote! {
+            #fn_name(&#value_param_name, payload.store).await;
+        }
+    };
+
     let expanded = quote! {
 
         #input
 
-        async fn #wrapper_fn_name(#first_param_name: Arc<#first_param_type>, #second_param_name: Arc<#second_param_type>) {
-            #fn_name(&#first_param_name, &#second_param_name).await;
+        async fn #wrapper_fn_name(payload: Arc<#payload_type_name<'_>>, #value_param_name: Arc<#value_param_type>) {
+            #invocation;
         }
 
         pub struct #handler_name;
@@ -107,15 +117,11 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
         #[async_trait]
         impl DataHookHandler for #handler_name {
 
-            async fn handle(&self, context: Arc<Context<'_>>, value: Arc<Payload>){
+            async fn handle(&self, payload: Arc<DispatchPayload<'_>>, value: Arc<Payload>){
                 if let Ok(data) = value.downcast::<Vec<#entity_kind>>() {
-                    // println!("Invoke");
-                    // let future = #wrapper_fn_name(context, data);
-                    #wrapper_fn_name(context, data).await;
-                    // Box::pin(noop())
+                    #wrapper_fn_name(payload, data).await;
                 }else {
                     println!("Downcast Error");
-                    // Box::pin(noop())
                 }
             }
 
