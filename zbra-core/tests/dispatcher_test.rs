@@ -1,11 +1,4 @@
-use std::sync::Arc;
-
-
-// use futures::executor::block_on;
-use zbra::{
-    dispatcher::{Context, DataHookHandler, Dispatcher, EntityAction, Payload},
-    prelude::*, reactive_store::ReactiveStore,
-};
+use zbra::prelude::*;
 
 #[entity(index(name), index(rank))]
 pub struct User {
@@ -20,7 +13,7 @@ pub struct TestEntity {
 }
 
 
-async fn add(context: Arc<Context<'_>>, value: Arc<Payload>) {
+async fn add(_context: Arc<Context<'_>>, _value: Arc<Payload>) {
     println!("add");
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     // context.hello();
@@ -29,7 +22,7 @@ async fn add(context: Arc<Context<'_>>, value: Arc<Payload>) {
 
 }
 
-async fn long_add(context: &Context<'_>, value: &User) {
+async fn long_add(_context: &Context<'_>, value: &User) {
     println!("long add : {:?}", value);
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     println!("long add Complete");
@@ -39,7 +32,7 @@ async fn long_add_wrapper(context: Arc<Context<'_>>, value: Arc<User>) {
     long_add(&context, &value).await;
 }
 
-async fn sub<'a>(context: Arc<Context<'a>>, value: Arc<Payload>) {
+async fn sub<'a>(context: Arc<Context<'a>>, _value: Arc<Payload>) {
     context.store.save_entities(vec![TestEntity::new(12)]).await;
 }
 

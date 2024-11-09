@@ -120,68 +120,6 @@ pub fn flow_context(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn entity_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as ItemFn);
-    let fn_name = &input.sig.ident;
-    let fn_vis = &input.vis;
-    let fn_block = &input.block;
-    let fn_args = &input.sig.inputs;
-
-    let first_param_sig = get_param_signature(input.sig.inputs.first());
-    if first_param_sig.is_none() {
-        return TokenStream::from(quote! {
-            compile_error!("Function has no parameters");
-        });
-    }
-    let (first_param_name, first_param_type) = first_param_sig.unwrap();
-
-    let expanded = if fn_args.iter().nth(1).is_some() {
-        // Extract the type of the second parameter
-        let (second_param_name, second_param_type) =
-            if let Some(FnArg::Typed(PatType { pat, ty, .. })) = fn_args.iter().nth(1) {
-                if let Pat::Ident(ident) = &**pat {
-                    let raw_ty = match **ty {
-                        Type::Reference(TypeReference { ref elem, .. }) => elem,
-                        _ => ty,
-                    };
-
-                    (&ident.ident, raw_ty)
-                } else {
-                    return TokenStream::from(quote! {
-                        compile_error!("Expected the second parameter to be an identifier.");
-                    });
-                }
-            } else {
-                return TokenStream::from(quote! {
-                    compile_error!("Expected a second parameter in the function signature.");
-                });
-            };
-
-        let expanded = quote! {
-            #fn_vis async fn #fn_name(#first_param_name: &#first_param_type, payload: Box<(dyn std::any::Any + Send + Sync)>){
-
-                if let Some(#second_param_name) = payload.downcast_ref::<#second_param_type>() {
-                    #fn_block
-                } else {
-                    println!("{}, Downcast error to {} ", stringify!(#fn_name), std::any::type_name::<#second_param_type>());
-                }
-            }
-        };
-        expanded
-    } else {
-        let expanded = quote! {
-
-            #fn_vis fn #fn_name(ns: #first_param_type, payload: Box<&dyn std::any::Any>) {
-                #fn_block
-            }
-        };
-        expanded
-    };
-
-    TokenStream::from(expanded)
-}
-
-#[proc_macro_attribute]
 pub fn entity_update(attr: TokenStream, item: TokenStream) -> TokenStream {
     entity_handler(attr, item, "Update")
 }
@@ -194,24 +132,17 @@ pub fn entity_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
 fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let fn_name = &input.sig.ident;
+    let action = Ident::new(action, Span::call_site());
 
     let mut metas = vec![];
     let metas_parser = syn::meta::parser(|meta| {
         metas.push(meta.path.clone());
         Ok(())
     });
-
     parse_macro_input!(attr with metas_parser);
-
-    let action = Ident::new(action, Span::call_site());
-
     let entity_kind = &metas.first().unwrap();
 
     let entity_kind_str = entity_kind.to_token_stream().to_string();
-
-    let fn_vis = &input.vis;
-    let fn_block = &input.block;
-    let fn_args = &input.sig.inputs;
 
     let first_param_sig = get_param_signature(input.sig.inputs.first());
     if first_param_sig.is_none() {

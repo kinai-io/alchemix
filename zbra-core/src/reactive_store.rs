@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use tokio::sync::RwLock;
-
 use crate::{
     dispatcher::{Context, Dispatcher, EntityAction},
     entity::Entity,
@@ -9,14 +7,14 @@ use crate::{
 };
 
 pub struct ReactiveStore {
-    dispatcher: RwLock<Dispatcher>,
+    dispatcher: Dispatcher,
     store: SQLiteEntityStore,
 }
 
 impl ReactiveStore {
     pub fn new(path: &str) -> Self {
         Self {
-            dispatcher: RwLock::new(Dispatcher::new()),
+            dispatcher: Dispatcher::new(),
             store: SQLiteEntityStore::new(path),
         }
     }
@@ -30,9 +28,9 @@ impl ReactiveStore {
         let _ = self.store.close().await;
     }
 
-    pub async fn add_entity_hooks(&self, hooks: Vec<Box<SafeDataHookHandler>>) {
-        let mut dispatcher = self.dispatcher.write().await;
-        dispatcher.register_entity_hooks(hooks);
+    pub fn with_entity_hooks(mut self, hooks: Vec<Box<SafeDataHookHandler>>) -> Self{
+        self.dispatcher.register_entity_hooks(hooks);
+        self
     }
 
     pub async fn save_entities<'a, T: Entity>(&'a self, entities: Vec<T>) {
@@ -41,8 +39,7 @@ impl ReactiveStore {
 
         let context = Arc::new(Context::new(self));
         self.store.update_entities(&entities).await;
-        let dispatcher = self.dispatcher.read().await;
-        dispatcher
+        self.dispatcher
             .dispatch_entity_hook(context, EntityAction::Update, entities)
             .await;
     }
@@ -55,8 +52,7 @@ impl ReactiveStore {
         let keys: Vec<String> = entities.iter().map(|e| e.get_key()).collect();
         let keys_str = keys.iter().map(|e| e.as_str()).collect();
         self.store.remove_entities(&keys_str).await;
-        let dispatcher = self.dispatcher.read().await;
-        dispatcher
+        self.dispatcher
             .dispatch_entity_hook(context, EntityAction::Delete, entities)
             .await;
     }

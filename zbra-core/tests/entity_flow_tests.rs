@@ -19,7 +19,7 @@ pub async fn increment_users_count(context: &UserFlow, users: &Vec<User>) {
     println!("increment_users_count : Done");
 }
 
-pub async fn long_process_users(context: &UserFlow, users: &Vec<User>) {
+pub async fn long_process_users(_context: &UserFlow, users: &Vec<User>) {
     println!("long_process_users : {:?}", users.len());
     sleep(Duration::from_secs(4)).await;
     println!("long_process_users : Done");

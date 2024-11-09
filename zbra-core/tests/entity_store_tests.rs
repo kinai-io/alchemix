@@ -21,7 +21,7 @@ pub async fn test_entity_store() {
     }
 
     let mut datastore = SQLiteEntityStore::new("./test-data/out/test.db");
-    datastore.open().await;
+    let _ = datastore.open().await;
 
     datastore.clear().await;
     let _ = datastore.update_entities(&users).await;

@@ -1,9 +1,4 @@
-use zbra::{
-    dispatcher::{Context, Dispatcher, EntityAction},
-    prelude::*,
-    reactive_store::ReactiveStore,
-};
-use zbra_flow_macros::{entity_delete, entity_update};
+use zbra::prelude::*;
 
 #[entity(index(name), index(rank))]
 pub struct User {
@@ -18,7 +13,7 @@ pub struct TestEntity {
 }
 
 #[entity_update(User)]
-pub async fn on_save(context: &Context<'_>, value: &Vec<User>) {
+pub async fn on_save(_context: &Context<'_>, value: &Vec<User>) {
     println!("Save users : {:?}", value);
 }
 
@@ -32,12 +27,12 @@ async fn long_save(context: &Context<'_>, value: &Vec<User>) {
 }
 
 #[entity_delete(User)]
-async fn on_delete(context: &Context<'_>, value: &Vec<User>) {
+async fn on_delete(_context: &Context<'_>, value: &Vec<User>) {
     println!("Delete : {:?}", value);
 }
 
 #[entity_update(TestEntity)]
-async fn on_derive(context: &Context<'_>, value: &Vec<TestEntity>) {
+async fn on_derive(_context: &Context<'_>, value: &Vec<TestEntity>) {
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("On Derive : {:?}", value);
 }
@@ -58,9 +53,11 @@ pub async fn test_hooks() {
     dispatcher
         .dispatch_entity_hook(context.clone(), EntityAction::Update, vec![user.clone()])
         .await;
+
     dispatcher
         .dispatch_entity_hook(context.clone(), EntityAction::Delete, vec![user.clone()])
         .await;
+
 }
 
 #[tokio::test]
@@ -68,15 +65,15 @@ pub async fn test_reactive_store() {
     println!("Start");
     let db_path = "test-data/out/entity-store.db";
 
-    let store = ReactiveStore::new(db_path).open().await;
-    
-    store
-        .add_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive))
+    let store = ReactiveStore::new(db_path)
+        .with_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive))
+        .open()
         .await;
 
     let user = User::new("u".to_string(), 1, vec![]);
 
     store.save_entities(vec![user.clone()]).await;
+
     store.delete_entities(vec![user.clone()]).await;
 
     store.close().await;
