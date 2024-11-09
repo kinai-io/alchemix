@@ -19,7 +19,7 @@ impl<'a> DispatchPayload<'a> {
         Self { store: r }
     }
 
-    pub fn get_context<T: 'static>(&self) -> Option<&T> {
+    pub fn get_context<T: 'static>(&self) -> &T {
         self.store.get_context()
     }
 }

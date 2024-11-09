@@ -12,6 +12,12 @@ pub struct TestEntity {
     value: usize,
 }
 
+
+#[flow_context(User, TestEntity)]
+pub struct AppContext{
+    secret: String
+}
+
 #[entity_update(User)]
 pub async fn on_save(value: &Vec<User>, _store: &ReactiveStore) {
     println!("Save users : {:?}", value);
@@ -47,26 +53,24 @@ pub async fn test_hooks() {
     let mut dispatcher = Dispatcher::new();
     dispatcher.register_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive));
 
+    let context = AppContext{
+        secret: "internal secret".to_string()
+    };
     let db_path = "test-data/out/entity-store.db";
-    let store = ReactiveStore::new(db_path);
-    let context = Arc::new(DispatchPayload::new(&store));
+    let store = ReactiveStore::new(context, db_path);
+    let dispatch_payload = Arc::new(DispatchPayload::new(&store));
 
     let user = User::new("u".to_string(), 1, vec![]);
 
     // Dispatch actions
     dispatcher
-        .dispatch_entity_hook(context.clone(), EntityAction::Update, vec![user.clone()])
+        .dispatch_entity_hook(dispatch_payload.clone(), EntityAction::Update, vec![user.clone()])
         .await;
 
     dispatcher
-        .dispatch_entity_hook(context.clone(), EntityAction::Delete, vec![user.clone()])
+        .dispatch_entity_hook(dispatch_payload.clone(), EntityAction::Delete, vec![user.clone()])
         .await;
 
-}
-
-#[flow_context(User)]
-pub struct AppContext{
-    secret: String
 }
 
 #[tokio::test]
@@ -74,15 +78,13 @@ pub async fn test_reactive_store() {
     println!("Start");
     let db_path = "test-data/out/entity-store.db";
 
-    let store = ReactiveStore::new(db_path)
+    let context = AppContext{
+        secret: "internal secret".to_string()
+    };
+    let store = ReactiveStore::new(context, db_path)
         .with_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive))
-        .with_context(AppContext{
-            secret: "internal secret".to_string()
-        })
         .open()
         .await;
-
-    let context: Option<&AppContext> = store.get_context();
 
     let user = User::new("user_1".to_string(), 1, vec![]);
 

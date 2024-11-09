@@ -22,7 +22,7 @@ pub fn flow_context(attr: TokenStream, item: TokenStream) -> TokenStream {
     // eprintln!("Factory macro : {:?}", classes);
 
     let mut entities_entries = Vec::new();
-    
+
     for class in &classes {
         let class_name = class.get_ident().unwrap();
         let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
@@ -72,7 +72,7 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
     let entity_kind_str = entity_kind.to_token_stream().to_string();
 
     let context_param_sig = get_param_signature(input.sig.inputs.get(2));
-   
+
     // let (context_param_name, context_param_type) = context_param_sig.unwrap();
 
     let value_param_sig = get_param_signature(input.sig.inputs.get(0));
@@ -94,11 +94,10 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
 
     let invocation = if let Some((_, context_param_type)) = context_param_sig {
         quote! {
-            if let Some(context) = payload.store.get_context::<#context_param_type>() {
-                #fn_name(&#value_param_name, payload.store, context).await;
-            }
+            let context = payload.store.get_context::<#context_param_type>();
+            #fn_name(&#value_param_name, payload.store, context).await;
         }
-    }else {
+    } else {
         quote! {
             #fn_name(&#value_param_name, payload.store).await;
         }

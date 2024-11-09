@@ -12,6 +12,11 @@ pub struct TestEntity {
     value: usize
 }
 
+#[flow_context(User, TestEntity)]
+pub struct AppContext{
+    secret: String
+}
+
 
 async fn add(_context: Arc<DispatchPayload<'_>>, _value: Arc<Payload>) {
     println!("add");
@@ -106,8 +111,12 @@ pub async fn test_dispatcher() {
         Box::new(subtract_handler),
     ]);
 
+    let context = AppContext{
+        secret: "internal secret".to_string()
+    };
+
     let db_path = "test-data/out/entity-store.db";
-    let store = ReactiveStore::new(db_path);
+    let store = ReactiveStore::new(context, db_path);
 
     let context = Arc::new(DispatchPayload::new(&store));
 
