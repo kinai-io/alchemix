@@ -92,7 +92,7 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
 
     let payload_type_name = Ident::new("DispatchPayload", Span::call_site());
 
-    let invocation = if let Some((context_param_name, context_param_type)) = context_param_sig {
+    let invocation = if let Some((_, context_param_type)) = context_param_sig {
         quote! {
             if let Some(context) = payload.store.get_context::<#context_param_type>() {
                 #fn_name(&#value_param_name, payload.store, context).await;
