@@ -29,7 +29,7 @@ impl SQLiteEntityStore {
         self
     }
 
-    pub async fn open(mut self) -> Result<Self, sqlx::Error> {
+    pub async fn open(&mut self) -> Result<(), sqlx::Error> {
         let database_url = format!("sqlite:{}", &self.path);
 
         if !Sqlite::database_exists(&database_url)
@@ -56,7 +56,7 @@ impl SQLiteEntityStore {
             self.execute_batch(pragmas).await;
         }
         self.create_tables().await;
-        Ok(self)
+        Ok(())
     }
 
     pub async fn update_entities<T: Entity>(&self, entities: &Vec<T>) {

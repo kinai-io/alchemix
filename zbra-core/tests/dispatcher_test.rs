@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+// use futures::executor::block_on;
 use zbra::{
     dispatcher::{BoxFuture, Context, DataHookHandler, Dispatcher, EntityAction, Payload},
-    prelude::*,
+    prelude::*, reactive_store::ReactiveStore,
 };
 
 #[entity(index(name), index(rank))]
@@ -12,32 +13,41 @@ pub struct User {
     data: Vec<u8>,
 }
 
-async fn add(context: Arc<Context>, value: Arc<Payload>) {
+#[entity]
+pub struct TestEntity {
+    value: usize
+}
+
+
+async fn add(context: Arc<Context<'_>>, value: Arc<Payload>) {
     println!("add");
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     // context.hello();
+    
     println!("add Complete");
+
 }
 
-async fn long_add(context: &Context, value: &User) {
+async fn long_add(context: &Context<'_>, value: &User) {
     println!("long add : {:?}", value);
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     context.hello();
     println!("long add Complete");
 }
 
-async fn long_add_wrapper(context: Arc<Context>, value: Arc<User>) {
+async fn long_add_wrapper(context: Arc<Context<'_>>, value: Arc<User>) {
     long_add(&context, &value).await;
 }
 
-async fn sub(context: Arc<Context>, value: Arc<Payload>) {
+async fn sub<'a>(context: Arc<Context<'a>>, value: Arc<Payload>) {
     context.hello();
+    context.save_entities(vec![TestEntity::new(12)]).await;
 }
 
 pub struct MyAddHandler;
 
 impl DataHookHandler for MyAddHandler {
-    fn handle(&self, context: Arc<Context>, value: Arc<Payload>) -> BoxFuture<'static, ()> {
+    fn handle<'a>(&'a self, context: Arc<Context<'a>>, value: Arc<Payload>) -> BoxFuture<'a, ()> {
         let future = add(context, value);
         Box::pin(future)
     }
@@ -54,7 +64,7 @@ impl DataHookHandler for MyAddHandler {
 pub struct MyLongAddHandler;
 
 impl DataHookHandler for MyLongAddHandler {
-    fn handle(&self, context: Arc<Context>, value: Arc<Payload>) -> BoxFuture<'static, ()> {
+    fn handle<'a>(&'a self, context: Arc<Context<'a>>, value: Arc<Payload>) -> BoxFuture<'a, ()> {
         if let Ok(data) = value.downcast::<User>() {
             let future = long_add_wrapper(context, data);
             Box::pin(future)
@@ -75,9 +85,11 @@ impl DataHookHandler for MyLongAddHandler {
 pub struct MySubtractHandler;
 
 impl DataHookHandler for MySubtractHandler {
-    fn handle(&self, context: Arc<Context>, value: Arc<Payload>) -> BoxFuture<'static, ()> {
+    fn handle<'a>(&'a self, context: Arc<Context<'a>>, value: Arc<Payload>) -> BoxFuture<'a, ()> {
         println!("sub");
-        let future = sub(context, value);
+        
+        block_on(sub(context.clone(), value.clone()));
+        let future = add(context, value);
         Box::pin(future)
     }
     fn get_action(&self) -> EntityAction {
@@ -104,7 +116,8 @@ pub async fn test_dispatcher() {
         Box::new(subtract_handler),
     ]);
 
-    let context = Arc::new(Context {});
+    let store = ReactiveStore::new();
+    let context = Arc::new(Context::new(&store));
 
     let user = User::new("u".to_string(), 1, vec![]);
     // Dispatch actions

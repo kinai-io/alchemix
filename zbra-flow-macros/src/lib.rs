@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, FnArg, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type, TypeReference
+    parse_macro_input, FnArg, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type, TypeReference,
 };
 
 #[proc_macro_attribute]
@@ -248,11 +248,14 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
 
         impl DataHookHandler for #handler_name {
 
-            fn handle(&self, context: Arc<#first_param_type>, value: Arc<Payload>) -> BoxFuture<'static, ()> {
+            fn handle<'a>(&'a self, context: Arc<Context<'a>>, value: Arc<Payload>) -> BoxFuture<'a, ()> {
                 if let Ok(data) = value.downcast::<Vec<#entity_kind>>() {
-                    let future = #wrapper_fn_name(context, data);
-                    Box::pin(future)
+                    // println!("Invoke");
+                    // let future = #wrapper_fn_name(context, data);
+                    block_on(#wrapper_fn_name(context, data));
+                    Box::pin(noop())
                 }else {
+                    println!("Downcast Error");
                     Box::pin(noop())
                 }
             }
@@ -271,10 +274,8 @@ fn entity_handler(attr: TokenStream, item: TokenStream, action: &str) -> TokenSt
     TokenStream::from(expanded)
 }
 
-
 #[proc_macro]
 pub fn entity_hooks(input: TokenStream) -> TokenStream {
-    
     let mut hook_names = vec![];
     let metas_parser = syn::meta::parser(|meta| {
         hook_names.push(meta.path.clone());
@@ -295,7 +296,7 @@ pub fn entity_hooks(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         {
-            let mut hooks: Vec<Box<dyn DataHookHandler>> = Vec::new();
+            let mut hooks: Vec<Box<dyn DataHookHandler + Send + Sync>> = Vec::new();
             #(#camel_case_hooks)*
             hooks
         }
@@ -303,7 +304,6 @@ pub fn entity_hooks(input: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
-
 
 fn get_param_signature(param: Option<&FnArg>) -> Option<(Ident, Box<Type>)> {
     if let Some(param) = param {
@@ -340,7 +340,6 @@ fn camel_to_snake_uppercase(camel: &str) -> String {
     }
     snake
 }
-
 
 fn snake_to_camel(snake_str: &str) -> String {
     let words = snake_str.split('_');

@@ -20,30 +20,27 @@ pub async fn test_entity_store() {
         users.push(user);
     }
 
-    let datastore = SQLiteEntityStore::new("./test-data/out/test.db")
-        .open()
+    let mut datastore = SQLiteEntityStore::new("./test-data/out/test.db");
+    datastore.open().await;
+
+    datastore.clear().await;
+    let _ = datastore.update_entities(&users).await;
+
+    let users: Vec<User> = datastore.get_entities_of_kind("User", &vec![]).await;
+
+    assert_eq!(users.len(), 10);
+
+    let ids = vec!["User_2", "User_5"];
+    let users: Vec<User> = datastore.get_entities_of_kind("User", &ids).await;
+    assert_eq!(users.len(), 2);
+
+    let users: Vec<User> = datastore
+        .query_entities("User", "rank", "value >= 3 AND value < 6")
         .await;
+    // println!("Users : {:?}", users);
+    assert_eq!(users.len(), 3);
 
-    if let Ok(datastore) = datastore {
-        datastore.clear().await;
-        let _ = datastore.update_entities(&users).await;
-
-        let users: Vec<User> = datastore.get_entities_of_kind("User", &vec![]).await;
-
-        assert_eq!(users.len(), 10);
-
-        let ids = vec!["User_2", "User_5"];
-        let users: Vec<User> = datastore.get_entities_of_kind("User", &ids).await;
-        assert_eq!(users.len(), 2);
-
-        let users: Vec<User> = datastore.query_entities("User", "rank", "value >= 3 AND value < 6").await;
-        // println!("Users : {:?}", users);
-        assert_eq!(users.len(), 3);
-
-
-        let keys = vec!["User#User_2", "User#User_5"];
-        datastore.remove_entities(&keys).await;
-        datastore.close().await;
-
-    }
+    let keys = vec!["User#User_2", "User#User_5"];
+    datastore.remove_entities(&keys).await;
+    datastore.close().await;
 }

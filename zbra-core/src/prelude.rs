@@ -4,6 +4,8 @@ pub use ts_rs::TS;
 pub use uuid::Uuid;
 pub use std::marker::PhantomData;
 pub use std::sync::Arc;
+pub use futures::executor::block_on;
+
 
 pub use crate::entity::{Entity, FieldIndex};
 pub use crate::sqlite_entity_store::SQLiteEntityStore;
