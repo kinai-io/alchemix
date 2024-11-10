@@ -44,7 +44,7 @@ async fn long_add_wrapper(context: Arc<DispatchPayload<'_>>, value: Arc<User>) {
 }
 
 async fn sub<'a>(context: Arc<DispatchPayload<'a>>, _value: Arc<Payload>) {
-    context.store.save_entities(vec![TestEntity::new(12)]).await;
+    context.store.save_entities(&vec![TestEntity::new(12)]).await;
 }
 
 pub struct MyAddHandler;

@@ -38,7 +38,7 @@ pub trait SignalHookHandler {
         value: Arc<Payload>,
     ) -> Result<Box<Payload>, String>;
 
-    fn get_name(&self) -> String;
+    fn get_name(&self) -> &str;
 }
 
 #[async_trait]
@@ -78,7 +78,7 @@ impl Dispatcher {
 
     pub fn register_signal_hooks(&mut self, hooks: Vec<Box<SafeSignalHookHandler>>) {
         for handler in hooks {
-            self.signal_hook.insert(handler.get_name(), handler);
+            self.signal_hook.insert(handler.get_name().to_string(), handler);
         }
     }
 

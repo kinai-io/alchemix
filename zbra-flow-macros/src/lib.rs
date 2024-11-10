@@ -191,6 +191,104 @@ pub fn entity_hooks(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+#[proc_macro_attribute]
+pub fn signal_handler(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as ItemFn);
+    let fn_name = &input.sig.ident;
+
+    let cc_fn_name = snake_to_camel(&fn_name.to_string());
+    let handler_name_str = format!("{}SignalHandler", cc_fn_name);
+    let handler_name = Ident::new(&handler_name_str, Span::call_site());
+
+    let value_param_sig = get_param_signature(input.sig.inputs.get(0));
+    if value_param_sig.is_none() {
+        return TokenStream::from(quote! {
+            compile_error!("Function has no parameters");
+        });
+    }
+    let (_, value_param_type) = value_param_sig.unwrap();
+    
+    let trigger_kind_str = value_param_type.to_token_stream().to_string();
+
+    let context_param_sig = get_param_signature(input.sig.inputs.get(2));
+
+    let invocation = if let Some((_, context_param_type)) = context_param_sig {
+        quote! {
+            let flow_context = payload.store.get_context::<#context_param_type>();
+            let res = #fn_name(&input, &payload.store, flow_context).await;
+        }
+    } else {
+        quote! {
+            let res = #fn_name(&input, &payload.store).await;
+        }
+    };
+
+    let expanded = quote! {
+            #input
+
+            struct #handler_name {}
+
+
+            #[async_trait]
+            impl SignalHookHandler for #handler_name {
+                async fn handle(
+                    &self,
+                    payload: Arc<DispatchPayload<'_>>,
+                    value: Arc<Payload>,
+                ) -> Result<Box<Payload>, String> {
+                    let input = value.downcast::<#value_param_type>();
+                    if let Ok(input) = input {
+                        #invocation
+                        match res {
+                            Ok(data) => Ok(Box::new(data)),
+                            Err(msg) => Err(msg),
+                        }
+                    }else {
+                        Err("Downcast Error".to_string())
+                    }
+                }
+
+                fn get_name(&self) -> &str {
+                    #trigger_kind_str
+                }
+            }
+
+    };
+    TokenStream::from(expanded)
+}
+
+#[proc_macro]
+pub fn signal_hooks(input: TokenStream) -> TokenStream {
+    let mut hook_names = vec![];
+    let metas_parser = syn::meta::parser(|meta| {
+        hook_names.push(meta.path.clone());
+        Ok(())
+    });
+
+    parse_macro_input!(input with metas_parser);
+
+    let mut camel_case_hooks = Vec::new();
+    for hook_name in &hook_names {
+        let camel_case_name = snake_to_camel(&hook_name.to_token_stream().to_string());
+        let handler_name = format!("{}SignalHandler", camel_case_name);
+        let ident = Ident::new(&handler_name, Span::call_site());
+        camel_case_hooks.push(quote! {
+            hooks.push(Box::new(#ident {}));
+        });
+    }
+
+    let expanded = quote! {
+        {
+            let mut hooks: Vec<Box<dyn SignalHookHandler + Send + Sync>> = Vec::new();
+            #(#camel_case_hooks)*
+            hooks
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+
 fn get_param_signature(param: Option<&FnArg>) -> Option<(Ident, Box<Type>)> {
     if let Some(param) = param {
         match param {

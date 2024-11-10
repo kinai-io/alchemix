@@ -42,9 +42,12 @@ impl ReactiveStore {
         &self.context.downcast_ref().unwrap()
     }
 
-    pub async fn open(mut self) -> Self {
+    pub async fn open(&mut self) {
         let _ = self.store.open().await;
-        self
+    }
+
+    pub async fn clear(&self) {
+        let _ = self.store.clear().await;
     }
 
     pub async fn close(&self) {
@@ -61,11 +64,11 @@ impl ReactiveStore {
         self
     }
 
-    pub async fn save_entities<'a, T: Entity>(&'a self, entities: Vec<T>) {
+    pub async fn save_entities<'a, T: Entity>(&'a self, entities: &Vec<T>) {
         let context = Arc::new(DispatchPayload::new(self));
-        self.store.update_entities(&entities).await;
+        self.store.update_entities(entities).await;
         self.dispatcher
-            .dispatch_entity_hook(context, EntityAction::Update, entities)
+            .dispatch_entity_hook(context, EntityAction::Update, entities.clone())
             .await;
     }
 
