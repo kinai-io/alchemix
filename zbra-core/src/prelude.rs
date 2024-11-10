@@ -6,6 +6,7 @@ pub use std::marker::PhantomData;
 pub use std::sync::Arc;
 pub use futures::executor::block_on;
 pub use async_trait::async_trait;
+pub use std::any::Any;
 
 pub use crate::entity::{Entity, FieldIndex};
 pub use crate::sqlite_entity_store::SQLiteEntityStore;

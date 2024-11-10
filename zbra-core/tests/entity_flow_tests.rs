@@ -31,7 +31,7 @@ pub async fn decrement_users_count(context: &UserFlow, users: &Vec<User>) {
     println!("-> secret : {}", context.secret);
 }
 
-#[flow_context(User)]
+#[rx_context(User)]
 pub struct UserFlow {
     secret: String,
 }

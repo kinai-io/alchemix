@@ -6,7 +6,7 @@ use syn::{
 };
 
 #[proc_macro_attribute]
-pub fn flow_context(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn rx_context(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemStruct);
     let struct_name = &input.ident;
 
@@ -43,6 +43,10 @@ pub fn flow_context(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #[async_trait]
         impl RxContext for #struct_name {
+            
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
 
             async fn delete_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) {
 
@@ -61,7 +65,6 @@ pub fn flow_context(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
         }
-
 
     };
 
@@ -192,7 +195,7 @@ pub fn entity_hooks(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn signal_handler(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn signal_handler(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let fn_name = &input.sig.ident;
 

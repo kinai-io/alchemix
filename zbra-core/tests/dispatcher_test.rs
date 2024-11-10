@@ -12,7 +12,7 @@ pub struct TestEntity {
     value: usize
 }
 
-#[flow_context(User, TestEntity)]
+#[rx_context(User, TestEntity)]
 pub struct AppContext{
     secret: String
 }

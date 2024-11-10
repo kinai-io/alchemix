@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Field, Fields, Ident, ItemStruct};
+use syn::{parse_macro_input, Fields, Ident, ItemStruct};
 
 #[proc_macro_attribute]
 pub fn entity(attr: TokenStream, item: TokenStream) -> TokenStream {

@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc};
+use std::{any::Any, borrow::Borrow, sync::Arc};
 
 use async_trait::async_trait;
 
@@ -9,7 +9,9 @@ use crate::{
 use serde_json::Value;
 
 #[async_trait]
-pub trait RxContext {
+pub trait RxContext: Any + Send + Sync + 'static{
+
+    fn as_any(&self) -> &dyn Any;
 
     async fn update_entities(&self, store: &ReactiveStore, kind: &str, ids: Vec<Value>);
 
@@ -21,16 +23,14 @@ pub trait RxContext {
 
 }
 
-pub type SafeContext = dyn Any + Send + Sync + 'static;
-
 pub struct ReactiveStore {
     dispatcher: Dispatcher,
     store: SQLiteEntityStore,
-    context: Box<SafeContext>,
+    context: Box<dyn RxContext>,
 }
 
 impl ReactiveStore {
-    pub fn new<T: Any + RxContext + Send + Sync + 'static>(context: T, path: &str) -> Self {
+    pub fn new<T: RxContext>(context: T, path: &str) -> Self {
         Self {
             dispatcher: Dispatcher::new(),
             store: SQLiteEntityStore::new(path),
@@ -39,7 +39,7 @@ impl ReactiveStore {
     }
 
     pub fn get_context<T: RxContext + 'static>(&self) -> &T {
-        &self.context.downcast_ref().unwrap()
+        self.context.as_any().downcast_ref::<T>().unwrap()
     }
 
     pub async fn open(&mut self) {
@@ -64,7 +64,7 @@ impl ReactiveStore {
         self
     }
 
-    pub async fn save_entities<'a, T: Entity>(&'a self, entities: &Vec<T>) {
+    pub async fn save_entities<'e, T: Entity>(&'e self, entities: &Vec<T>) {
         let context = Arc::new(DispatchPayload::new(self));
         self.store.update_entities(entities).await;
         self.dispatcher
@@ -93,12 +93,8 @@ impl ReactiveStore {
         self.dispatcher.dispatch_signal_hook(context, signal_entity).await
     }
 
-    fn get_rx_context(&self) -> &dyn RxContext {
-        *self.context.downcast_ref::<&dyn RxContext>().unwrap()
-    }
-
     pub async fn execute_action(&self, action: RxAction) -> RxResponse {
-        let rx_context = self.get_rx_context();
+        let rx_context = &self.context;
         match action {
             RxAction::UpdateEntities(kind, values) => {
                 rx_context.update_entities(&self, &kind, values).await;

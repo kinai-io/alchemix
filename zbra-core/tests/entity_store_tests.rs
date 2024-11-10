@@ -8,7 +8,7 @@ pub struct User {
 }
 
 
-#[flow_context(User)]
+#[rx_context(User)]
 pub struct AppContext{}
 
 #[tokio::test]
