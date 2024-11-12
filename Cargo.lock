@@ -30,6 +30,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "alchemix-entity-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "alchemix-flow-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "alchemix_flow"
+version = "0.1.0"
+dependencies = [
+ "alchemix-entity-macros",
+ "alchemix-flow-macros",
+ "async-trait",
+ "bincode",
+ "futures",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "ts-rs",
+ "uuid",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2021,41 +2056,6 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
-]
-
-[[package]]
-name = "zbra-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bincode",
- "futures",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "ts-rs",
- "uuid",
- "zbra-entity-macros",
- "zbra-flow-macros",
-]
-
-[[package]]
-name = "zbra-entity-macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "zbra-flow-macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

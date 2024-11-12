@@ -1,5 +1,5 @@
 [package]
-name = "zbra-entity-macros"
+name = "alchemix-flow-macros"
 version.workspace = true
 edition = "2021"
 

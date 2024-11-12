@@ -2,11 +2,11 @@
 resolver = "2"
 
 members = [
-    "zbra-core",
-    "zbra-entity-macros",
-    "zbra-flow-macros"
+    "alchemix-flow",
+    "alchemix-entity-macros",
+    "alchemix-flow-macros"
 ]
 
 [workspace.package]
-name = "flowave-ws"
+name = "alchemix"
 version = "0.1.0"
