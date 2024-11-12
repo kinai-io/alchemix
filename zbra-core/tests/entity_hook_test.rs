@@ -12,7 +12,17 @@ pub struct TestEntity {
     value: usize,
 }
 
-#[rx_context(User, TestEntity)]
+#[entity]
+pub struct CountUsers {
+    _all: usize,
+}
+
+#[entity]
+pub struct UsersSummary {
+    count: usize,
+}
+
+#[rx_context(User, TestEntity, CountUsers, UsersSummary)]
 pub struct AppContext {
     secret: String,
 }
@@ -34,7 +44,9 @@ async fn long_save(value: &Vec<User>, store: &ReactiveStore) {
     println!("long add : {:?}", value);
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     // context.hello();
-    store.save_entities(&vec![TestEntity::new(value.len())]).await;
+    store
+        .save_entities(&vec![TestEntity::new(value.len())])
+        .await;
     println!("long add Complete");
 }
 
@@ -44,7 +56,7 @@ async fn on_delete(value: &Vec<User>, _store: &ReactiveStore) {
 }
 
 #[entity_update(TestEntity)]
-async fn on_derive(value: &Vec<TestEntity>, _store: &ReactiveStore, context: &AppContext) {
+async fn on_derive_data(value: &Vec<TestEntity>, _store: &ReactiveStore, context: &AppContext) {
     // let context = store.get_context::<AppContext>();
     // context: &AppContext
     println!("On Derive : {:?}", value);
@@ -53,18 +65,11 @@ async fn on_derive(value: &Vec<TestEntity>, _store: &ReactiveStore, context: &Ap
     println!("context : {}", context.secret);
 }
 
-#[entity]
-pub struct CountUsers {
-    _all: usize,
-}
-
-#[entity]
-pub struct UsersSummary {
-    count: usize,
-}
-
 #[signal_handler]
-async fn on_count_users(_value: &CountUsers, store: &ReactiveStore) -> Result<UsersSummary, String> {
+async fn count_users(
+    _value: &CountUsers,
+    store: &ReactiveStore,
+) -> Result<UsersSummary, String> {
     let res = store.get_entities(AppContext::USER, &vec![]).await;
     Ok(UsersSummary::new(res.len()))
 }
@@ -75,17 +80,20 @@ pub struct AddUsers {
 }
 
 #[signal_handler]
-async fn add_users(value: &AddUsers, store: &ReactiveStore, _context: &AppContext) -> Result<AddUsers, String> {
+async fn add_users(
+    value: &AddUsers,
+    store: &ReactiveStore,
+    _context: &AppContext,
+) -> Result<AddUsers, String> {
     store.save_entities(&value.users).await;
     Ok(value.clone())
 }
-
 
 #[tokio::test]
 pub async fn test_hooks() {
     println!("Start");
     let mut dispatcher = Dispatcher::new();
-    dispatcher.register_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive));
+    dispatcher.register_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive_data));
 
     let context = AppContext {
         secret: "internal secret".to_string(),
@@ -114,6 +122,20 @@ pub async fn test_hooks() {
         .await;
 }
 
+fn create_users(index_start: usize, count: usize) -> Vec<User> {
+    let mut new_users = vec![];
+    for i in index_start..index_start + count {
+        let user = User::new_with_id(
+            &format!("User_{}", i),
+            format!("User_{}", i),
+            i,
+            format!("#{}", i).as_bytes().into(),
+        );
+        new_users.push(user);
+    }
+    new_users
+}
+
 #[tokio::test]
 pub async fn test_reactive_store() {
     println!("Start");
@@ -122,9 +144,11 @@ pub async fn test_reactive_store() {
     let context = AppContext {
         secret: "internal secret".to_string(),
     };
+
+    
     let mut rx_store = ReactiveStore::new(context, db_path)
-        .with_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive))
-        .with_signal_hooks(signal_hooks!(add_users, on_count_users));
+        .with_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive_data))
+        .with_signal_hooks(signal_hooks!(add_users, count_users));
 
     rx_store.open().await;
     rx_store.clear().await;
@@ -136,16 +160,7 @@ pub async fn test_reactive_store() {
     let users = rx_store.get_entities(AppContext::USER, &vec![]).await;
     assert_eq!(users.len(), 1);
 
-    let mut new_users = vec![];
-    for i in 0..10 {
-        let user = User::new_with_id(
-            &format!("User_{}", i),
-            format!("User_{}", i),
-            i,
-            format!("#{}", i).as_bytes().into(),
-        );
-        new_users.push(user);
-    }
+    let new_users = create_users(0, 10);
 
     let _: Result<AddUsers, String> = rx_store.signal(AddUsers::new(new_users)).await;
 
@@ -155,18 +170,47 @@ pub async fn test_reactive_store() {
     let count_result: Result<UsersSummary, String> = rx_store.signal(CountUsers::new(0)).await;
     println!("Signal output : {:?}", count_result);
 
-
-    let res = rx_store.execute_action(RxAction::new_query_ids("User", vec![])).await;
-
+    let res = rx_store
+        .execute_action(RxAction::new_query_ids("User", vec![]))
+        .await;
     println!("Query Action : {:?}", res);
 
+    let new_users = create_users(100, 10);
+    rx_store
+        .execute_action(RxAction::new_update_action("User", &new_users))
+        .await;
 
+    let values = serde_json::to_value(users).unwrap();
+
+    let entities = serde_json::from_value::<Vec<User>>(values).unwrap();
 
     rx_store
         .delete_entities(AppContext::USER, &vec![user.id.as_str()])
         .await;
 
+    let res = rx_store
+        .execute_action(RxAction::new_query_property(
+            "User",
+            "rank",
+            "value > 103 AND value < 106",
+        ))
+        .await;
 
+    println!("Query Prop : {:?}", res);
+
+    let res = rx_store
+        .execute_action(RxAction::new_signal(CountUsers::new(0)))
+        .await;
+    println!("Action : {:?}", res);
+    // rx_store.query_property(kind, property_name, expression)
+
+
+    let out = serde_json::to_string(&RxAction::new_signal(CountUsers::new(0))).unwrap();
+    
+    let signal_data: RxAction = serde_json::from_str(&out).unwrap();
+
+    println!("Json: {}", out);
+    println!("Json Action: {:?}", &signal_data);
 
     rx_store.close().await;
 }

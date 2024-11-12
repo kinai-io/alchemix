@@ -12,12 +12,12 @@ pub fn rx_context(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let mut classes: Vec<Path> = Vec::new();
 
-    let factory_parser = syn::meta::parser(|meta| {
+    let classes_parser = syn::meta::parser(|meta| {
         classes.push(meta.path);
         Ok(())
     });
 
-    parse_macro_input!(attr with factory_parser);
+    parse_macro_input!(attr with classes_parser);
 
     // eprintln!("Factory macro : {:?}", classes);
 
@@ -33,6 +33,12 @@ pub fn rx_context(attr: TokenStream, item: TokenStream) -> TokenStream {
         });
     }
 
+    let get_entities_arms = build_get_entities_arms(&struct_name, &classes);
+    let update_entities_arms = build_update_entities_arms(&struct_name, &classes);
+    let delete_entities_arms = build_delete_entities_arms(&struct_name, &classes);
+    let query_property_arms = build_query_property_arms(&struct_name, &classes);
+    let signal_arms = build_signal_arms(&struct_name, &classes);
+
     let expanded = quote! {
 
         #input
@@ -43,32 +49,159 @@ pub fn rx_context(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #[async_trait]
         impl RxContext for #struct_name {
-            
+
             fn as_any(&self) -> &dyn Any {
                 self
             }
 
             async fn delete_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) {
-
+                match(kind) {
+                    #delete_entities_arms
+                    _ => println!("Unknown kind {}", kind),
+                }
             }
 
-            async fn update_entities(&self, store: &ReactiveStore, kind: &str, ids: Vec<Value>) {
-
+            async fn update_entities(&self, store: &ReactiveStore, kind: &str, entities_values: Value) {
+                match(kind) {
+                    #update_entities_arms
+                    _ => println!("Unknown kind {}", kind),
+                }
             }
 
             async fn get_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) -> RxResponse {
-                RxResponse::Success()
+                match(kind) {
+                    #get_entities_arms
+                    _ => println!("Unknown kind {}", kind),
+                }
+                RxResponse::Failure(format!("Unknown kind {}", kind))
             }
 
             async fn query_property(&self, store: &ReactiveStore, kind: &str, property_name: &str, expression: &str) -> RxResponse {
-                RxResponse::Success()
+                match(kind) {
+                    #query_property_arms
+                    _ => println!("Unknown kind {}", kind),
+                }
+                RxResponse::Failure(format!("Unknown kind {}", kind))
             }
+
+            async fn signal(&self, store: &ReactiveStore, signal_value: Value) -> RxResponse {
+                let kind = signal_value.get("kind")
+                .unwrap()
+                .as_str()
+                .unwrap().to_string();
+                match(kind.as_str()) {
+                    #signal_arms
+                    _ => println!("Unknown kind {}", kind),
+                }
+                RxResponse::Failure(format!("Unknown kind {}", kind))
+            }
+            
 
         }
 
     };
 
     TokenStream::from(expanded)
+}
+
+fn build_delete_entities_arms(
+    struct_name: &Ident,
+    classes: &Vec<Path>,
+) -> proc_macro2::TokenStream {
+    let mut match_arms = Vec::new();
+    for class in classes {
+        let class_name = class.get_ident().unwrap();
+        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
+        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
+        match_arms.push(quote! {
+            stringify!(#class_name) => {
+                store.delete_entities(#struct_name::#class_name_sk, &ids).await;
+            },
+        });
+    }
+    let expanded = quote! {#(#match_arms)*};
+    expanded
+}
+
+fn build_update_entities_arms(
+    struct_name: &Ident,
+    classes: &Vec<Path>,
+) -> proc_macro2::TokenStream {
+    let mut match_arms = Vec::new();
+    for class in classes {
+        let class_name = class.get_ident().unwrap();
+        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
+        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
+        match_arms.push(quote! {
+            stringify!(#class_name) => {
+                if let Ok(entities) = serde_json::from_value::<Vec<#class_name>>(entities_values) {
+                    store.save_entities(&entities).await;
+                }
+
+            },
+        });
+    }
+    let expanded = quote! {#(#match_arms)*};
+    expanded
+}
+
+fn build_get_entities_arms(struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::TokenStream {
+    let mut match_arms = Vec::new();
+    for class in classes {
+        let class_name = class.get_ident().unwrap();
+        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
+        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
+        match_arms.push(quote! {
+            stringify!(#class_name) => {
+                let entries = store.get_entities(#struct_name::#class_name_sk, ids).await;
+                let values = serde_json::to_value(entries).unwrap();
+                return RxResponse::QueryResponse(values)
+            },
+        });
+    }
+    let expanded = quote! {#(#match_arms)*};
+    expanded
+}
+
+fn build_query_property_arms(struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::TokenStream {
+    let mut match_arms = Vec::new();
+    for class in classes {
+        let class_name = class.get_ident().unwrap();
+        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
+        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
+        match_arms.push(quote! {
+            stringify!(#class_name) => {
+                let entries = store.query_property(#struct_name::#class_name_sk, property_name, expression).await;
+                let values = serde_json::to_value(entries).unwrap();
+                return RxResponse::QueryResponse(values)
+            },
+        });
+    }
+    let expanded = quote! {#(#match_arms)*};
+    expanded
+}
+
+fn build_signal_arms(struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::TokenStream {
+    let mut match_arms = Vec::new();
+    for class in classes {
+        let class_name = class.get_ident().unwrap();
+        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
+        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
+        match_arms.push(quote! {
+            stringify!(#class_name) => {
+                if let Ok(signal_entity) = serde_json::from_value::<#class_name>(signal_value) {
+                    let result = store.signal_action(signal_entity).await;
+                    let result = match result {
+                        Ok(value) => RxResponse::SignalResponse(value),
+                        Err(message) => RxResponse::Failure(message)
+                    };
+                    return result;
+                }
+            },
+        });
+    }
+    let expanded = quote! {#(#match_arms)*};
+    expanded
 }
 
 #[proc_macro_attribute]
@@ -210,7 +343,7 @@ pub fn signal_handler(_attr: TokenStream, item: TokenStream) -> TokenStream {
         });
     }
     let (_, value_param_type) = value_param_sig.unwrap();
-    
+
     let trigger_kind_str = value_param_type.to_token_stream().to_string();
 
     let context_param_sig = get_param_signature(input.sig.inputs.get(2));
@@ -246,6 +379,21 @@ pub fn signal_handler(_attr: TokenStream, item: TokenStream) -> TokenStream {
                             Ok(data) => Ok(Box::new(data)),
                             Err(msg) => Err(msg),
                         }
+                    }else {
+                        Err("Downcast Error".to_string())
+                    }
+                }
+
+                async fn handle_json_action(
+                    &self,
+                    payload: Arc<DispatchPayload<'_>>,
+                    value: Arc<Payload>,
+                ) -> Result<Value, String> {
+                    let input = value.downcast::<#value_param_type>();
+                    if let Ok(input) = input {
+                        #invocation
+                        let value = serde_json::to_value(res).unwrap();
+                        Ok(value)
                     }else {
                         Err("Downcast Error".to_string())
                     }
@@ -290,7 +438,6 @@ pub fn signal_hooks(input: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
-
 
 fn get_param_signature(param: Option<&FnArg>) -> Option<(Ident, Box<Type>)> {
     if let Some(param) = param {

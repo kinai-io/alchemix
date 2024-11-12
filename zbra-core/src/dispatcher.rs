@@ -1,14 +1,6 @@
-// lib.rs
-
-use std::any::Any;
 use std::collections::HashMap;
-use std::sync::Arc;
 
-use async_trait::async_trait;
-
-use crate::entity::Entity;
-use crate::prelude::RxContext;
-use crate::reactive_store::ReactiveStore;
+use crate::prelude::*;
 
 pub struct DispatchPayload<'a> {
     pub store: &'a ReactiveStore,
@@ -37,6 +29,12 @@ pub trait SignalHookHandler {
         context: Arc<DispatchPayload<'_>>,
         value: Arc<Payload>,
     ) -> Result<Box<Payload>, String>;
+
+    async fn handle_json_action(
+        &self,
+        context: Arc<DispatchPayload<'_>>,
+        value: Arc<Payload>,
+    ) -> Result<Value, String>;
 
     fn get_name(&self) -> &str;
 }
@@ -100,6 +98,20 @@ impl Dispatcher {
                 },
                 Err(message) => Err(message)
             }
+        }else {
+            Err("Unable to find signal handler".to_string())
+        }
+    }
+
+    pub async fn dispatch_signal_action<'a, T: Entity>(
+        &'a self,
+        context: Arc<DispatchPayload<'a>>,
+        signal_entity: T,
+    ) -> Result<Value, String>{
+        if let Some(handler) =  self.signal_hook.get(signal_entity.get_kind()) {
+            let value_ref = Arc::new(signal_entity);
+            let response = handler.handle_json_action(context, value_ref).await;
+            response
         }else {
             Err("Unable to find signal handler".to_string())
         }

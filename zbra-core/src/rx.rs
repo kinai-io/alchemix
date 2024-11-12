@@ -5,7 +5,7 @@ use crate::entity::Entity;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum RxAction {
-    UpdateEntities(String, Vec<Value>),
+    UpdateEntities(String, Value),
     DeleteEntities(String, Vec<String>),
     QueryIds(String, Vec<String>),
     QueryProperty(String, String, String),
@@ -15,11 +15,8 @@ pub enum RxAction {
 impl RxAction {
 
     pub fn new_update_action<P: Entity>(kind: &str, entities: &Vec<P>) -> Self {
-        let values = entities
-            .iter()
-            .map(|e| serde_json::to_value(e).unwrap())
-            .collect();
-        RxAction::UpdateEntities(kind.to_string(), values)
+        let value = serde_json::to_value(entities).unwrap();
+        RxAction::UpdateEntities(kind.to_string(), value)
     }
 
     pub fn new_delete_action(kind: &str, ids: Vec<String>) -> Self {
@@ -33,12 +30,17 @@ impl RxAction {
     pub fn new_query_property(kind: &str, property_name: &str, expression: &str) -> Self{
         RxAction::QueryProperty(kind.to_string(), property_name.to_string(), expression.to_string())
     }
+
+    pub fn new_signal<P: Entity>(signal: P) -> Self{
+        let value = serde_json::to_value(signal).unwrap();
+        RxAction::Signal(value)
+    }
 }
 
 #[derive(Debug)]
 pub enum RxResponse {
     Success(),
-    QueryResponse(),
-    SignalResponse(),
+    QueryResponse(Value),
+    SignalResponse(Value),
     Failure(String)
 }

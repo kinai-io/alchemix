@@ -13,13 +13,15 @@ pub trait RxContext: Any + Send + Sync + 'static{
 
     fn as_any(&self) -> &dyn Any;
 
-    async fn update_entities(&self, store: &ReactiveStore, kind: &str, ids: Vec<Value>);
+    async fn update_entities(&self, store: &ReactiveStore, kind: &str, ids: Value);
 
     async fn delete_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>);
 
     async fn get_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) -> RxResponse;
 
     async fn query_property(&self, store: &ReactiveStore, kind: &str, property_name: &str, expression: &str) -> RxResponse;
+
+    async fn signal(&self, store: &ReactiveStore, signal: Value) -> RxResponse;
 
 }
 
@@ -93,6 +95,11 @@ impl ReactiveStore {
         self.dispatcher.dispatch_signal_hook(context, signal_entity).await
     }
 
+    pub async fn signal_action<T:Entity>(&self, signal_entity: T) -> Result<Value, String> {
+        let context = Arc::new(DispatchPayload::new(self));
+        self.dispatcher.dispatch_signal_action(context, signal_entity).await
+    }
+
     pub async fn execute_action(&self, action: RxAction) -> RxResponse {
         let rx_context = &self.context;
         match action {
@@ -112,8 +119,8 @@ impl ReactiveStore {
             RxAction::QueryProperty(kind, property_name, expression) => {
                 rx_context.query_property(&self, &kind, &property_name, &expression).await
             }
-            RxAction::Signal(_signal) => {
-                RxResponse::SignalResponse()
+            RxAction::Signal(signal) => {
+                rx_context.signal(&self, signal).await
             }
         }
     }
