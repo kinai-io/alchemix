@@ -13,8 +13,8 @@ pub use crate::sqlite_entity_store::SQLiteEntityStore;
 pub use crate::entity_schema::EntitySchema;
 
 pub use crate::dispatcher::*;
-pub use crate::reactive_store::*;
+pub use crate::rx_store::*;
 pub use crate::rx::*;
 
 pub use alchemix_entity_macros::*;
-pub use alchemix_flow_macros::*;
+pub use alchemix_rx_macros::*;

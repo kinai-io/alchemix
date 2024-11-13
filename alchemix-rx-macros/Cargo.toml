@@ -1,5 +1,5 @@
 [package]
-name = "alchemix-flow-macros"
+name = "alchemix-rx-macros"
 version.workspace = true
 edition = "2021"
 

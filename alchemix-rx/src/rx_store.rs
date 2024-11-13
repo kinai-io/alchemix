@@ -13,25 +13,25 @@ pub trait RxContext: Any + Send + Sync + 'static{
 
     fn as_any(&self) -> &dyn Any;
 
-    async fn update_entities(&self, store: &ReactiveStore, kind: &str, ids: Value);
+    async fn update_entities(&self, store: &RxStore, kind: &str, ids: Value);
 
-    async fn delete_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>);
+    async fn delete_entities(&self, store: &RxStore, kind: &str, ids: &Vec<&str>);
 
-    async fn get_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) -> RxResponse;
+    async fn get_entities(&self, store: &RxStore, kind: &str, ids: &Vec<&str>) -> RxResponse;
 
-    async fn query_property(&self, store: &ReactiveStore, kind: &str, property_name: &str, expression: &str) -> RxResponse;
+    async fn query_property(&self, store: &RxStore, kind: &str, property_name: &str, expression: &str) -> RxResponse;
 
-    async fn signal(&self, store: &ReactiveStore, signal: Value) -> RxResponse;
+    async fn signal(&self, store: &RxStore, signal: Value) -> RxResponse;
 
 }
 
-pub struct ReactiveStore {
+pub struct RxStore {
     dispatcher: Dispatcher,
     store: SQLiteEntityStore,
     context: Box<dyn RxContext>,
 }
 
-impl ReactiveStore {
+impl RxStore {
     pub fn new<T: RxContext>(context: T, path: &str) -> Self {
         Self {
             dispatcher: Dispatcher::new(),

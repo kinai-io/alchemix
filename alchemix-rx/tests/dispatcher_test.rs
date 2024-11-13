@@ -1,4 +1,4 @@
-use alchemix_flow::prelude::*;
+use alchemix_rx::prelude::*;
 
 #[entity(index(name), index(rank))]
 pub struct User {
@@ -122,7 +122,7 @@ pub async fn test_dispatcher() {
     };
 
     let db_path = "test-data/out/entity-store.db";
-    let store = ReactiveStore::new(context, db_path);
+    let store = RxStore::new(context, db_path);
 
     let context = Arc::new(DispatchPayload::new(&store));
 

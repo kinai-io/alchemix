@@ -54,21 +54,21 @@ pub fn rx_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 self
             }
 
-            async fn delete_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) {
+            async fn delete_entities(&self, store: &RxStore, kind: &str, ids: &Vec<&str>) {
                 match(kind) {
                     #delete_entities_arms
                     _ => println!("Unknown kind {}", kind),
                 }
             }
 
-            async fn update_entities(&self, store: &ReactiveStore, kind: &str, entities_values: Value) {
+            async fn update_entities(&self, store: &RxStore, kind: &str, entities_values: Value) {
                 match(kind) {
                     #update_entities_arms
                     _ => println!("Unknown kind {}", kind),
                 }
             }
 
-            async fn get_entities(&self, store: &ReactiveStore, kind: &str, ids: &Vec<&str>) -> RxResponse {
+            async fn get_entities(&self, store: &RxStore, kind: &str, ids: &Vec<&str>) -> RxResponse {
                 match(kind) {
                     #get_entities_arms
                     _ => println!("Unknown kind {}", kind),
@@ -76,7 +76,7 @@ pub fn rx_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 RxResponse::Failure(format!("Unknown kind {}", kind))
             }
 
-            async fn query_property(&self, store: &ReactiveStore, kind: &str, property_name: &str, expression: &str) -> RxResponse {
+            async fn query_property(&self, store: &RxStore, kind: &str, property_name: &str, expression: &str) -> RxResponse {
                 match(kind) {
                     #query_property_arms
                     _ => println!("Unknown kind {}", kind),
@@ -84,7 +84,7 @@ pub fn rx_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 RxResponse::Failure(format!("Unknown kind {}", kind))
             }
 
-            async fn signal(&self, store: &ReactiveStore, signal_value: Value) -> RxResponse {
+            async fn signal(&self, store: &RxStore, signal_value: Value) -> RxResponse {
                 let kind = signal_value.get("kind")
                 .unwrap()
                 .as_str()
@@ -205,12 +205,12 @@ fn build_signal_arms(struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::T
 }
 
 #[proc_macro_attribute]
-pub fn entity_update(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn rx_entity_update(attr: TokenStream, item: TokenStream) -> TokenStream {
     entity_handler(attr, item, "Update")
 }
 
 #[proc_macro_attribute]
-pub fn entity_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn rx_entity_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
     entity_handler(attr, item, "Delete")
 }
 
@@ -328,7 +328,7 @@ pub fn entity_hooks(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn signal_handler(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn rx_signal_handler(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let fn_name = &input.sig.ident;
 

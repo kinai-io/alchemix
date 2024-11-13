@@ -1,4 +1,4 @@
-use alchemix_flow::prelude::*;
+use alchemix_rx::prelude::*;
 
 #[entity(index(name), index(rank))]
 pub struct User {

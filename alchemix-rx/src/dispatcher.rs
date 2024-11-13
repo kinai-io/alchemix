@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use crate::prelude::*;
 
 pub struct DispatchPayload<'a> {
-    pub store: &'a ReactiveStore,
+    pub store: &'a RxStore,
 }
 
 impl<'a> DispatchPayload<'a> {
-    pub fn new(r: &'a ReactiveStore) -> Self {
+    pub fn new(r: &'a RxStore) -> Self {
         Self { store: r }
     }
 

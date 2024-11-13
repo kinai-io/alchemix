@@ -1,4 +1,4 @@
-use alchemix_flow::prelude::*;
+use alchemix_rx::prelude::*;
 
 #[entity(index(name), index(rank))]
 pub struct User {
@@ -33,14 +33,14 @@ impl AppContext {
     }
 }
 
-#[entity_update(User)]
-pub async fn on_save(value: &Vec<User>, _store: &ReactiveStore) {
+#[rx_entity_update(User)]
+pub async fn on_save(value: &Vec<User>, _store: &RxStore) {
     println!("Save users : {:?}", value);
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 }
 
-#[entity_update(User)]
-async fn long_save(value: &Vec<User>, store: &ReactiveStore) {
+#[rx_entity_update(User)]
+async fn long_save(value: &Vec<User>, store: &RxStore) {
     println!("long add : {:?}", value);
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     // context.hello();
@@ -50,13 +50,13 @@ async fn long_save(value: &Vec<User>, store: &ReactiveStore) {
     println!("long add Complete");
 }
 
-#[entity_delete(User)]
-async fn on_delete(value: &Vec<User>, _store: &ReactiveStore) {
+#[rx_entity_delete(User)]
+async fn on_delete(value: &Vec<User>, _store: &RxStore) {
     println!("Delete : {:?}", value);
 }
 
-#[entity_update(TestEntity)]
-async fn on_derive_data(value: &Vec<TestEntity>, _store: &ReactiveStore, context: &AppContext) {
+#[rx_entity_update(TestEntity)]
+async fn on_derive_data(value: &Vec<TestEntity>, _store: &RxStore, context: &AppContext) {
     // let context = store.get_context::<AppContext>();
     // context: &AppContext
     println!("On Derive : {:?}", value);
@@ -65,10 +65,10 @@ async fn on_derive_data(value: &Vec<TestEntity>, _store: &ReactiveStore, context
     println!("context : {}", context.secret);
 }
 
-#[signal_handler]
+#[rx_signal_handler]
 async fn count_users(
     _value: &CountUsers,
-    store: &ReactiveStore,
+    store: &RxStore,
 ) -> Result<UsersSummary, String> {
     let res = store.get_entities(AppContext::USER, &vec![]).await;
     Ok(UsersSummary::new(res.len()))
@@ -79,10 +79,10 @@ pub struct AddUsers {
     users: Vec<User>,
 }
 
-#[signal_handler]
+#[rx_signal_handler]
 async fn add_users(
     value: &AddUsers,
-    store: &ReactiveStore,
+    store: &RxStore,
     _context: &AppContext,
 ) -> Result<AddUsers, String> {
     store.save_entities(&value.users).await;
@@ -99,7 +99,7 @@ pub async fn test_hooks() {
         secret: "internal secret".to_string(),
     };
     let db_path = "test-data/out/entity-store.db";
-    let store = ReactiveStore::new(context, db_path);
+    let store = RxStore::new(context, db_path);
     let dispatch_payload = Arc::new(DispatchPayload::new(&store));
 
     let user = User::new("u".to_string(), 1, vec![]);
@@ -146,7 +146,7 @@ pub async fn test_reactive_store() {
     };
 
     
-    let mut rx_store = ReactiveStore::new(context, db_path)
+    let mut rx_store = RxStore::new(context, db_path)
         .with_entity_hooks(entity_hooks!(on_save, long_save, on_delete, on_derive_data))
         .with_signal_hooks(signal_hooks!(add_users, count_users));
 
@@ -182,7 +182,7 @@ pub async fn test_reactive_store() {
 
     let values = serde_json::to_value(users).unwrap();
 
-    let entities = serde_json::from_value::<Vec<User>>(values).unwrap();
+    let _entities = serde_json::from_value::<Vec<User>>(values).unwrap();
 
     rx_store
         .delete_entities(AppContext::USER, &vec![user.id.as_str()])

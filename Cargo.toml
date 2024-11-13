@@ -1,10 +1,9 @@
 [workspace]
-resolver = "2"
-
 members = [
-    "alchemix-flow",
+    "alchemix-rx",
+    "alchemix-utils",
     "alchemix-entity-macros",
-    "alchemix-flow-macros"
+    "alchemix-rx-macros"
 ]
 
 [workspace.package]
