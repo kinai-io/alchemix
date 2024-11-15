@@ -1,0 +1,29 @@
+[package]
+name = "alchemix_web"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name= "alchemix_web"
+
+[dependencies]
+
+alchemix_rx = { path = "../alchemix-rx", version = "0.1.0"  }
+alchemix_utils = { path = "../alchemix-utils", version = "0.1.0"  }
+
+
+rocket = { version = "0.5.1", features = ["json"] }
+serde = { version = "1", features = ["derive"]}
+serde_json = "1"
+
+argon2 = { version = "0.5.3", features = ["password-hash", "alloc"] }
+jsonwebtoken = "9.3.0"
+
+uuid = { version = "1.11.0", features = ["v4"] }
+
+chrono = "^0.4"
+walkdir = "2"
+url = "2.5"
+
+## Required by rx
+ts-rs = "9"

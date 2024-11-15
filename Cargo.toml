@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "alchemix-rx",
+    "alchemix-web",
     "alchemix-utils",
     "alchemix-entity-macros",
     "alchemix-rx-macros"
