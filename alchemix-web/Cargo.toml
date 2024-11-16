@@ -27,3 +27,6 @@ url = "2.5"
 
 ## Required by rx
 ts-rs = "9"
+
+## Client
+reqwest = { version = "0.12.7", features = ["json"] }

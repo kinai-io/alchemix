@@ -37,7 +37,7 @@ impl RxAction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum RxResponse {
     Success(),
     QueryResponse(Value),
