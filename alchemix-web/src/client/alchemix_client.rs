@@ -11,15 +11,16 @@ pub async fn test_client() {
 
     let body = RxAction::new_update_action("DemoData", &vec![DemoData::new(42)]);
     let body_str = serde_json::to_string(&body).unwrap();
-    let res = client.post(url).body(body_str).send().await;
+    println!("{}", body_str);
+    // let res = client.post(url).body(body_str).send().await;
 
-    let body = RxAction::new_query_ids("DemoData", vec![]);
-    let body_str = serde_json::to_string(&body).unwrap();
-    let res = client.post(url).body(body_str).send().await;
-    if let Ok(response) = res {
-        let response_body = response.json::<RxResponse>().await;
-        if let Ok(rx_resp) = response_body {
-            println!("{:?}", rx_resp);
-        }
-    }
+    // let body = RxAction::new_query_ids("DemoData", vec![]);
+    // let body_str = serde_json::to_string(&body).unwrap();
+    // let res = client.post(url).body(body_str).send().await;
+    // if let Ok(response) = res {
+    //     let response_body = response.json::<RxResponse>().await;
+    //     if let Ok(rx_resp) = response_body {
+    //         println!("{:?}", rx_resp);
+    //     }
+    // }
 }

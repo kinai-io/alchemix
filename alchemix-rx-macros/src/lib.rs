@@ -93,7 +93,7 @@ pub fn rx_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                     #signal_arms
                     _ => println!("Unknown kind {}", kind),
                 }
-                RxResponse::Failure(format!("Unknown kind {}", kind))
+                RxResponse::Failure(format!("Unable to match signal - Unknown kind {}", kind))
             }
             
 
