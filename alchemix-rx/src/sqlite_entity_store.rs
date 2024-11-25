@@ -141,7 +141,7 @@ impl SQLiteEntityStore {
         } else {
             let ids_str: Vec<String> = ids.iter().map(|k| format!("\'{}\'", k)).collect();
             let keys_str = format!("({})", ids_str.join(", "));
-            let query = format!("SELECT data FROM entity WHERE id IN {}", keys_str);
+            let query = format!("SELECT data FROM entity WHERE kind = \'{}\' AND id IN {}", kind, keys_str);
             query
         };
 
