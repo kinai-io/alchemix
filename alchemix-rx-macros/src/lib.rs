@@ -362,7 +362,7 @@ pub fn rx_signal_handler(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let expanded = quote! {
             #input
 
-            struct #handler_name {}
+            pub struct #handler_name {}
 
 
             #[async_trait]
