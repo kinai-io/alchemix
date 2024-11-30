@@ -39,6 +39,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "alchemix-ax-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "alchemix-entity-macros"
 version = "0.1.0"
 dependencies = [
@@ -60,6 +69,7 @@ dependencies = [
 name = "alchemix_rx"
 version = "0.1.0"
 dependencies = [
+ "alchemix-ax-macros",
  "alchemix-entity-macros",
  "alchemix-rx-macros",
  "async-trait",

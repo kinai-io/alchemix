@@ -6,6 +6,7 @@ members = [
     "alchemix-web",
     "alchemix-utils",
     "alchemix-entity-macros",
+    "alchemix-ax-macros",
     "alchemix-rx-macros"
 ]
 

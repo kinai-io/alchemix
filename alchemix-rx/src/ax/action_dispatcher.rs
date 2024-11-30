@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, sync::Arc};
+use std::{any::Any, collections::HashMap, sync::Arc, marker::PhantomData};
 
 use async_trait::async_trait;
 use serde::Serialize;
@@ -32,7 +32,7 @@ impl ActionDispatcher {
         }
     }
 
-    pub async fn trigger_action<T: AxAction>(&self, action: T) -> Vec<AxResponse> {
+    pub async fn trigger_action<T: AxEvent>(&self, action: T) -> Vec<AxResponse> {
         let event_kind = action.get_kind();
         let data_hooks = &self.action_handlers;
         if let Some(handlers) = data_hooks.get(event_kind) {
@@ -56,15 +56,22 @@ impl ActionDispatcher {
 
 
 #[async_trait]
-pub trait AxContext: Any + Send + Sync + 'static {
+pub trait AxContext: Any + Send + Sync {
+
     fn as_any(&self) -> &dyn Any;
 
     fn as_context(&self) -> &dyn AxContext;
 }
 
-pub trait AxAction: Any + Send + Sync {
+pub struct EventSchema<T> {
+    pub name: &'static str,
+    pub _marker: PhantomData<T>,
+}
+
+pub trait AxEvent: Any + Send + Sync {
     fn get_id(&self) -> &str;
     fn get_kind(&self) -> &str;
+    fn get_key(&self) -> String;
 }
 
 #[derive(Debug, Serialize)]
