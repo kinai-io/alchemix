@@ -25,7 +25,18 @@ pub async fn add_action(
     Ok(Sum::new(res))
 }
 
-#[ax_context]
+#[ax_hook]
+pub async fn sum_history(
+    action: &Sum,
+    _dispatcher: &ActionDispatcher,
+    _context: &TestContext,
+) -> Result<(), String> {
+    println!("SUM History: {}", action.result);
+
+    Ok(())
+}
+
+#[ax_context(AddAction, Sum)]
 pub struct TestContext {}
 
 impl TestContext {
@@ -39,7 +50,7 @@ pub async fn test_ax() {
     let context = TestContext {};
     let mut dispatcher = ActionDispatcher::new(context);
 
-    dispatcher.add_action_handlers(event_hooks!(add_action));
+    dispatcher.add_action_handlers(event_hooks!(add_action, sum_history));
 
     let action = AddAction::new(2, 3);
 

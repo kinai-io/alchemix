@@ -180,6 +180,13 @@ pub fn ax_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 self
             }
 
+            async fn json_event(&self, dispatcher: &ActionDispatcher, event: &Value) -> Vec<AxResponse> {
+                if let Ok(action) = serde_json::from_value::<Sum>(event.clone()) {
+                    return dispatcher.trigger_action(action).await;
+                }
+                vec![]
+            }
+
         }
 
     };

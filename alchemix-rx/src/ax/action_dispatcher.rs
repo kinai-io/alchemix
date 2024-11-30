@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, sync::Arc, marker::PhantomData};
+use std::{any::Any, collections::HashMap, marker::PhantomData, sync::Arc};
 
 use async_trait::async_trait;
 use serde::Serialize;
@@ -47,20 +47,33 @@ impl ActionDispatcher {
                 futures.push(future);
             }
             let res = futures::future::join_all(futures).await;
+
+            // Event Cascading : If responses contains event, send them back to the pipeline
+            let mut next_futures = vec![];
+            for response_entry in &res {
+                if response_entry.success {
+                    if let Some(next_event) = &response_entry.value {
+                        let future = self.context.json_event(self, next_event);
+                        next_futures.push(future);
+                    }
+                }
+            }
+            let _ = futures::future::join_all(next_futures).await;
             res
         } else {
             vec![]
         }
     }
+    
 }
-
 
 #[async_trait]
 pub trait AxContext: Any + Send + Sync {
-
     fn as_any(&self) -> &dyn Any;
 
     fn as_context(&self) -> &dyn AxContext;
+
+    async fn json_event(&self, dispatcher: &ActionDispatcher, event: &Value) -> Vec<AxResponse>;
 }
 
 pub struct EventSchema<T> {
