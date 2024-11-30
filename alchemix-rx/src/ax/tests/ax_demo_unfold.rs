@@ -123,6 +123,10 @@ impl AxContext for TestContext {
         }
         vec![]
     }
+
+    fn get_hooks(&self) -> Vec<ActionHandler> {
+        vec![]
+    }
 }
 
 #[tokio::test]

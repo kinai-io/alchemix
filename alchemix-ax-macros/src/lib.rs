@@ -140,12 +140,34 @@ pub fn ax_context(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let mut classes: Vec<Path> = Vec::new();
 
+    let mut hooks: Vec<Path> = Vec::new();
+
     let classes_parser = syn::meta::parser(|meta| {
-        classes.push(meta.path);
+        if meta.path.is_ident("events") {
+            let _ = meta.parse_nested_meta(|meta| {
+                let name = meta.path.get_ident().unwrap().to_string();
+                classes.push(meta.path);
+                Ok(())
+            });
+        }else if meta.path.is_ident("hooks") {
+            let _ = meta.parse_nested_meta(|meta| {
+                let name = meta.path.get_ident().unwrap().to_string();
+                hooks.push(meta.path);
+                Ok(())
+            });
+        }
+        // classes.push(meta.path);
         Ok(())
     });
 
     parse_macro_input!(attr with classes_parser);
+
+    let mut hooks_vec_items = Vec::new();
+    for hook_name in &hooks {
+        hooks_vec_items.push(quote! {
+            hooks.push(#hook_name());
+        });
+    }
 
     // eprintln!("Factory macro : {:?}", classes);
 
@@ -195,6 +217,12 @@ pub fn ax_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }else {
                     vec![]
                 }
+            }
+
+            fn get_hooks(&self) -> Vec<ActionHandler> {
+                let mut hooks: Vec<ActionHandler> = Vec::new();
+                #(#hooks_vec_items)*
+                hooks
             }
 
         }
@@ -287,34 +315,6 @@ pub fn ax_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
         async fn #hook_name (#fn_inputs) #fn_output
         #fn_body
     };
-    TokenStream::from(expanded)
-}
-
-#[proc_macro]
-pub fn event_hooks(input: TokenStream) -> TokenStream {
-    let mut hook_names = vec![];
-    let metas_parser = syn::meta::parser(|meta| {
-        hook_names.push(meta.path.clone());
-        Ok(())
-    });
-
-    parse_macro_input!(input with metas_parser);
-
-    let mut hooks_vec_items = Vec::new();
-    for hook_name in &hook_names {
-        hooks_vec_items.push(quote! {
-            hooks.push(#hook_name());
-        });
-    }
-
-    let expanded = quote! {
-        {
-            let mut hooks: Vec<ActionHandler> = Vec::new();
-            #(#hooks_vec_items)*
-            hooks
-        }
-    };
-
     TokenStream::from(expanded)
 }
 

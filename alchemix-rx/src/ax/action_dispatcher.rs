@@ -13,10 +13,13 @@ pub struct ActionDispatcher {
 
 impl ActionDispatcher {
     pub fn new<T: AxContext>(context: T) -> Self {
-        Self {
+        let hooks = context.get_hooks();
+        let mut instance = Self {
             context: Box::new(context),
             action_handlers: HashMap::new(),
-        }
+        };
+        instance.add_action_handlers(hooks);
+        instance
     }
 
     pub fn get_context<T: AxContext + 'static>(&self) -> &T {
@@ -77,6 +80,8 @@ pub trait AxContext: Any + Send + Sync {
     fn as_any(&self) -> &dyn Any;
 
     fn as_context(&self) -> &dyn AxContext;
+
+    fn get_hooks(&self) -> Vec<ActionHandler>;
 
     async fn json_event(&self, dispatcher: &ActionDispatcher, event: &Value) -> Vec<AxResponse>;
 }

@@ -36,7 +36,10 @@ pub async fn sum_history(
     Ok(())
 }
 
-#[ax_context(AddAction, Sum)]
+#[ax_context(
+    events(AddAction, Sum),
+    hooks(add_action, sum_history)
+)]
 pub struct TestContext {}
 
 impl TestContext {
@@ -48,10 +51,7 @@ impl TestContext {
 #[tokio::test]
 pub async fn test_ax() {
     let context = TestContext {};
-    let mut dispatcher = ActionDispatcher::new(context);
-
-    dispatcher.add_action_handlers(event_hooks!(add_action, sum_history));
-
+    let dispatcher = ActionDispatcher::new(context);
     let action = AddAction::new(2, 3);
 
     let res = dispatcher.dispatch_event(action).await;
