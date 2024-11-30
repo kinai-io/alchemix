@@ -4,41 +4,11 @@ use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::prelude::Payload;
-
-pub trait RxAction: Any + Send + Sync + 'static {
-    fn get_id(&self) -> &str;
-    fn get_kind(&self) -> &str;
-}
-
-#[derive(Debug, Serialize)]
-pub struct RxResponse {
-    pub success: bool,
-    pub handler: String,
-    pub value: Option<Value>,
-}
-
-
-#[async_trait]
-pub trait ActionHandler {
-    fn get_kind(&self) -> &str;
-    fn get_action_id(&self) -> &str;
-    async fn handle(&self, context:  &ActionDispatcher, value: Arc<Payload>) -> RxResponse;
-}
-
-pub type SafeActionHandler = dyn ActionHandler + Send + Sync;
-
-#[async_trait]
-pub trait ActionContext: Any + Send + Sync + 'static {
-
-    fn as_any(&self) -> &dyn Any;
-
-    fn as_context(&self) -> &dyn ActionContext;
-}
+use crate::action_handler::ActionHandler;
 
 pub struct ActionDispatcher {
     context: Box<dyn ActionContext>,
-    action_handlers: HashMap<String, Vec<Box<SafeActionHandler>>>,
+    action_handlers: HashMap<String, Vec<ActionHandler>>,
 }
 
 impl ActionDispatcher {
@@ -53,7 +23,7 @@ impl ActionDispatcher {
         self.context.as_any().downcast_ref::<T>().unwrap()
     }
 
-    pub fn add_action_handlers(&mut self, handlers: Vec<Box<SafeActionHandler>>) {
+    pub fn add_action_handlers(&mut self, handlers: Vec<ActionHandler>) {
         let data_hooks = &mut self.action_handlers;
         for handler in handlers {
             let event_kind = handler.get_kind();
@@ -62,11 +32,10 @@ impl ActionDispatcher {
         }
     }
 
-    pub async fn trigger_action<T: RxAction>(&self, action: T) -> Vec<RxResponse> {
+    pub async fn trigger_action<T: AxAction>(&self, action: T) -> Vec<AxResponse> {
         let event_kind = action.get_kind();
         let data_hooks = &self.action_handlers;
         if let Some(handlers) = data_hooks.get(event_kind) {
-            
             // let c = DispatchPayload::new(self, value_ref);
             let value = Arc::new(action);
             let mut futures = vec![];
@@ -83,4 +52,24 @@ impl ActionDispatcher {
             vec![]
         }
     }
+}
+
+
+#[async_trait]
+pub trait ActionContext: Any + Send + Sync + 'static {
+    fn as_any(&self) -> &dyn Any;
+
+    fn as_context(&self) -> &dyn ActionContext;
+}
+
+pub trait AxAction: Any + Send + Sync {
+    fn get_id(&self) -> &str;
+    fn get_kind(&self) -> &str;
+}
+
+#[derive(Debug, Serialize)]
+pub struct AxResponse {
+    pub success: bool,
+    pub handler: String,
+    pub value: Option<Value>,
 }

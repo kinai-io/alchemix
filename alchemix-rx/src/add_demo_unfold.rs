@@ -1,8 +1,8 @@
 use std::{any::Any, future::Future, pin::Pin, sync::Arc};
 
 use crate::{
-    action_dispatcher::{ActionContext, ActionDispatcher, RxAction, RxResponse},
-    action_handler::{DefaultActionHandler, HandlerFunction},
+    action_dispatcher::{ActionContext, ActionDispatcher, AxAction, AxResponse},
+    action_handler::{ActionHandler, HandlerFunction},
     prelude::Payload,
 };
 use serde::Serialize;
@@ -13,7 +13,7 @@ pub struct AddAction {
     pub right: u16,
 }
 
-impl RxAction for AddAction {
+impl AxAction for AddAction {
     fn get_id(&self) -> &str {
         "000"
     }
@@ -41,15 +41,15 @@ pub async fn add_action(
     Ok(Sum { result: res })
 }
 
-pub fn create_add_action_handler() -> Box<DefaultActionHandler> {
+pub fn create_add_action_handler() -> ActionHandler {
     let handler: Pin<Box<HandlerFunction>> = Box::pin(add_action_executor);
-    DefaultActionHandler::new(handler, "AddAction", "execute_add")
+    ActionHandler::new(handler, "AddAction", "execute_add")
 }
 
 pub fn add_action_executor(
     dispatcher: &ActionDispatcher,
     value: Arc<Payload>,
-) -> Pin<Box<dyn Future<Output = RxResponse> + Send + Sync + '_>> {
+) -> Pin<Box<dyn Future<Output = AxResponse> + Send + Sync + '_>> {
     let context: &TestContext = dispatcher.get_context();
 
     Box::pin(async move {
@@ -58,14 +58,14 @@ pub fn add_action_executor(
             let p = payload.as_ref();
             let res = add_action(p, dispatcher, context).await;
             if let Ok(res) = res {
-                return RxResponse {
+                return AxResponse {
                     success: true,
                     handler: "execute_add".to_string(),
                     value: Some(serde_json::to_value(res).unwrap()),
                 };
             }
         }
-        return RxResponse {
+        return AxResponse {
             success: false,
             handler: "execute_add".to_string(),
             value: None,

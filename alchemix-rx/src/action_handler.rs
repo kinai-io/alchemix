@@ -1,47 +1,44 @@
-use async_trait::async_trait;
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use crate::{
-    action_dispatcher::{ActionDispatcher, ActionHandler, RxResponse},
+    action_dispatcher::{ActionDispatcher, AxResponse},
     prelude::Payload,
 };
 
-pub struct DefaultActionHandler {
+pub struct ActionHandler {
     handler_func: Pin<Box<HandlerFunction>>,
     kind: String,
     handler_id: String,
 }
 
-impl DefaultActionHandler {
+impl ActionHandler {
     pub fn new(
         handler_func: Pin<Box<HandlerFunction>>,
         kind: &str,
         handler_id: &str,
-    ) -> Box<DefaultActionHandler> {
-        Box::new(DefaultActionHandler {
+    ) -> ActionHandler {
+        ActionHandler {
             handler_func,
             kind: kind.to_string(),
             handler_id: handler_id.to_string(),
-        })
+        }
     }
-}
 
-#[async_trait]
-impl ActionHandler for DefaultActionHandler {
-    fn get_kind(&self) -> &str {
+    pub fn get_kind(&self) -> &str {
         &self.kind
     }
 
-    fn get_action_id(&self) -> &str {
+    pub fn get_action_id(&self) -> &str {
         &self.handler_id
     }
 
-    async fn handle(&self, context: &ActionDispatcher, value: Arc<Payload>) -> RxResponse {
+    pub async fn handle(&self, context: &ActionDispatcher, value: Arc<Payload>) -> AxResponse {
         (self.handler_func)(context, value).await
     }
+
 }
 
 pub type HandlerFunction = fn(
     &ActionDispatcher,
     Arc<Payload>,
-) -> Pin<Box<dyn Future<Output = RxResponse> + Send + Sync + '_>>;
+) -> Pin<Box<dyn Future<Output = AxResponse> + Send + Sync + '_>>;
