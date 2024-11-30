@@ -7,7 +7,7 @@ use syn::{
 };
 
 #[proc_macro_attribute]
-pub fn ax_event(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn flux_event(attr: TokenStream, item: TokenStream) -> TokenStream {
     // let args = parse_macro_input!(args as MetaList);
     let input = parse_macro_input!(item as ItemStruct);
     let struct_name = &input.ident;
@@ -113,7 +113,7 @@ pub fn ax_event(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn event_part(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn flux_event_part(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemStruct);
 
     let name = &input.ident;
@@ -134,7 +134,7 @@ pub fn event_part(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn ax_context(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn flux_context(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemStruct);
     let struct_name = &input.ident;
 
@@ -194,17 +194,17 @@ pub fn ax_context(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
 
         #[async_trait]
-        impl AxContext for #struct_name {
+        impl FluxContext for #struct_name {
 
             fn as_any(&self) -> &dyn Any {
                 self
             }
 
-            fn as_context(&self) -> &dyn AxContext {
+            fn as_context(&self) -> &dyn FluxContext {
                 self
             }
 
-            async fn json_event(&self, dispatcher: &ActionDispatcher, event: &Value) -> Vec<AxResponse> {
+            async fn json_event(&self, dispatcher: &Flux, event: &Value) -> Vec<AxResponse> {
                 if let Some(kind) = event.get("kind") {
                     let kind = kind.as_str().unwrap().to_string();
                     match(kind.as_str()) {
@@ -219,8 +219,8 @@ pub fn ax_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            fn get_hooks(&self) -> Vec<ActionHandler> {
-                let mut hooks: Vec<ActionHandler> = Vec::new();
+            fn get_hooks(&self) -> Vec<EventHandler> {
+                let mut hooks: Vec<EventHandler> = Vec::new();
                 #(#hooks_vec_items)*
                 hooks
             }
@@ -251,7 +251,7 @@ fn build_event_arms(_struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::T
 }
 
 #[proc_macro_attribute]
-pub fn ax_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let fn_name = &input.sig.ident;
     let fn_inputs = &input.sig.inputs;
@@ -280,13 +280,13 @@ pub fn ax_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
 
-        pub fn #fn_name() -> ActionHandler {
+        pub fn #fn_name() -> EventHandler {
             let handler: Pin<Box<HandlerFunction>> = Box::pin(#executor_name);
-            ActionHandler::new(handler, #trigger_kind_str , #cc_fn_name)
+            EventHandler::new(handler, #trigger_kind_str , #cc_fn_name)
         }
 
         pub fn #executor_name(
-            dispatcher: &ActionDispatcher,
+            dispatcher: &Flux,
             value: Arc<Payload>,
         ) -> Pin<Box<dyn Future<Output = AxResponse> + Send + Sync + '_>> {
             let context: &TestContext = dispatcher.get_context();

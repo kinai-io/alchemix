@@ -1,20 +1,20 @@
 use crate::prelude::*;
 
-#[ax_event]
+#[flux_event]
 pub struct AddAction {
     pub left: u16,
     pub right: u16,
 }
 
-#[ax_event]
+#[flux_event]
 pub struct Sum {
     pub result: u16,
 }
 
-#[ax_hook]
+#[flux_hook]
 pub async fn add_action(
     action: &AddAction,
-    _dispatcher: &ActionDispatcher,
+    _dispatcher: &Flux,
     context: &TestContext,
 ) -> Result<Sum, String> {
     let res = action.left + action.right;
@@ -25,10 +25,10 @@ pub async fn add_action(
     Ok(Sum::new(res))
 }
 
-#[ax_hook]
+#[flux_hook]
 pub async fn sum_history(
     action: &Sum,
-    _dispatcher: &ActionDispatcher,
+    _dispatcher: &Flux,
     _context: &TestContext,
 ) -> Result<(), String> {
     println!("SUM History: {}", action.result);
@@ -36,7 +36,7 @@ pub async fn sum_history(
     Ok(())
 }
 
-#[ax_context(
+#[flux_context(
     events(AddAction, Sum),
     hooks(add_action, sum_history)
 )]
@@ -49,9 +49,10 @@ impl TestContext {
 }
 
 #[tokio::test]
-pub async fn test_ax() {
+pub async fn test_flux() {
     let context = TestContext {};
-    let dispatcher = ActionDispatcher::new(context);
+    let dispatcher = Flux::new(context);
+    
     let action = AddAction::new(2, 3);
 
     let res = dispatcher.dispatch_event(action).await;

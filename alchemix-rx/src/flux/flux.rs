@@ -1,18 +1,19 @@
 use std::{any::Any, collections::HashMap, marker::PhantomData, sync::Arc};
 
-use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::ax::ActionHandler;
+use crate::flux::EventHandler;
 
-pub struct ActionDispatcher {
-    context: Box<dyn AxContext>,
-    action_handlers: HashMap<String, Vec<ActionHandler>>,
+use super::FluxContext;
+
+pub struct Flux {
+    context: Box<dyn FluxContext>,
+    action_handlers: HashMap<String, Vec<EventHandler>>,
 }
 
-impl ActionDispatcher {
-    pub fn new<T: AxContext>(context: T) -> Self {
+impl Flux {
+    pub fn new<T: FluxContext>(context: T) -> Self {
         let hooks = context.get_hooks();
         let mut instance = Self {
             context: Box::new(context),
@@ -22,11 +23,11 @@ impl ActionDispatcher {
         instance
     }
 
-    pub fn get_context<T: AxContext + 'static>(&self) -> &T {
+    pub fn get_context<T: FluxContext + 'static>(&self) -> &T {
         self.context.as_any().downcast_ref::<T>().unwrap()
     }
 
-    pub fn add_action_handlers(&mut self, handlers: Vec<ActionHandler>) {
+    pub fn add_action_handlers(&mut self, handlers: Vec<EventHandler>) {
         let data_hooks = &mut self.action_handlers;
         for handler in handlers {
             let event_kind = handler.get_kind();
@@ -75,16 +76,7 @@ impl ActionDispatcher {
     
 }
 
-#[async_trait]
-pub trait AxContext: Any + Send + Sync {
-    fn as_any(&self) -> &dyn Any;
 
-    fn as_context(&self) -> &dyn AxContext;
-
-    fn get_hooks(&self) -> Vec<ActionHandler>;
-
-    async fn json_event(&self, dispatcher: &ActionDispatcher, event: &Value) -> Vec<AxResponse>;
-}
 
 pub struct EventSchema<T> {
     pub name: &'static str,

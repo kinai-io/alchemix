@@ -1,23 +1,23 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use crate::{
-    ax::{ActionDispatcher, AxResponse},
+    flux::{Flux, AxResponse},
     prelude::Payload,
 };
 
-pub struct ActionHandler {
+pub struct EventHandler {
     handler_func: Pin<Box<HandlerFunction>>,
     kind: String,
     handler_id: String,
 }
 
-impl ActionHandler {
+impl EventHandler {
     pub fn new(
         handler_func: Pin<Box<HandlerFunction>>,
         kind: &str,
         handler_id: &str,
-    ) -> ActionHandler {
-        ActionHandler {
+    ) -> EventHandler {
+        EventHandler {
             handler_func,
             kind: kind.to_string(),
             handler_id: handler_id.to_string(),
@@ -32,13 +32,13 @@ impl ActionHandler {
         &self.handler_id
     }
 
-    pub async fn handle(&self, context: &ActionDispatcher, value: Arc<Payload>) -> AxResponse {
+    pub async fn handle(&self, context: &Flux, value: Arc<Payload>) -> AxResponse {
         (self.handler_func)(context, value).await
     }
 
 }
 
 pub type HandlerFunction = fn(
-    &ActionDispatcher,
+    &Flux,
     Arc<Payload>,
 ) -> Pin<Box<dyn Future<Output = AxResponse> + Send + Sync + '_>>;
