@@ -124,14 +124,14 @@ fn build_delete_entities_arms(
 }
 
 fn build_update_entities_arms(
-    struct_name: &Ident,
+    _struct_name: &Ident,
     classes: &Vec<Path>,
 ) -> proc_macro2::TokenStream {
     let mut match_arms = Vec::new();
     for class in classes {
         let class_name = class.get_ident().unwrap();
         let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
-        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
+        let _class_name_sk = Ident::new(&class_name_sk, Span::call_site());
         match_arms.push(quote! {
             stringify!(#class_name) => {
                 if let Ok(entities) = serde_json::from_value::<Vec<#class_name>>(entities_values) {
@@ -181,12 +181,12 @@ fn build_query_property_arms(struct_name: &Ident, classes: &Vec<Path>) -> proc_m
     expanded
 }
 
-fn build_signal_arms(struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::TokenStream {
+fn build_signal_arms(_struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::TokenStream {
     let mut match_arms = Vec::new();
     for class in classes {
         let class_name = class.get_ident().unwrap();
         let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
-        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
+        let _class_name_sk = Ident::new(&class_name_sk, Span::call_site());
         match_arms.push(quote! {
             stringify!(#class_name) => {
                 if let Ok(signal_entity) = serde_json::from_value::<#class_name>(signal_value) {

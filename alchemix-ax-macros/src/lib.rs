@@ -145,13 +145,13 @@ pub fn flux_context(attr: TokenStream, item: TokenStream) -> TokenStream {
     let classes_parser = syn::meta::parser(|meta| {
         if meta.path.is_ident("events") {
             let _ = meta.parse_nested_meta(|meta| {
-                let name = meta.path.get_ident().unwrap().to_string();
+                // let name = meta.path.get_ident().unwrap().to_string();
                 classes.push(meta.path);
                 Ok(())
             });
         }else if meta.path.is_ident("hooks") {
             let _ = meta.parse_nested_meta(|meta| {
-                let name = meta.path.get_ident().unwrap().to_string();
+                // let name = meta.path.get_ident().unwrap().to_string();
                 hooks.push(meta.path);
                 Ok(())
             });
