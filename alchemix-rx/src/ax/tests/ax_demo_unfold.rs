@@ -119,7 +119,7 @@ impl AxContext for TestContext {
 
     async fn json_event(&self, dispatcher: &ActionDispatcher, event: &Value) -> Vec<AxResponse> {
         if let Ok(action) = serde_json::from_value::<Sum>(event.clone()) {
-            return dispatcher.trigger_action(action).await;
+            return dispatcher.dispatch_event(action).await;
         }
         vec![]
     }
@@ -137,7 +137,7 @@ pub async fn test_action_unfold() {
     
     let add_action = AddAction { left: 2, right: 3 };
     
-    let res = dispatcher.trigger_action(add_action).await;
+    let res = dispatcher.dispatch_event(add_action).await;
 
     println!("Res : {:?}", res);
     println!("Res JSON : {:?}", serde_json::to_string(&res).unwrap());

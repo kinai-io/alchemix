@@ -32,7 +32,7 @@ impl ActionDispatcher {
         }
     }
 
-    pub async fn trigger_action<T: AxEvent>(&self, action: T) -> Vec<AxResponse> {
+    pub async fn dispatch_event<T: AxEvent>(&self, action: T) -> Vec<AxResponse> {
         let event_kind = action.get_kind();
         let data_hooks = &self.action_handlers;
         if let Some(handlers) = data_hooks.get(event_kind) {
@@ -63,6 +63,11 @@ impl ActionDispatcher {
         } else {
             vec![]
         }
+    }
+    
+
+    pub async fn dispatch_json_event(&self, event: Value) -> Vec<AxResponse> {
+        self.context.json_event(self, &event).await
     }
     
 }

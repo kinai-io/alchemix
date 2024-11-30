@@ -54,7 +54,7 @@ pub async fn test_ax() {
 
     let action = AddAction::new(2, 3);
 
-    let res = dispatcher.trigger_action(action).await;
+    let res = dispatcher.dispatch_event(action).await;
 
     println!("Res : {:?}", res);
     println!("Res JSON : {:?}", serde_json::to_string(&res).unwrap());

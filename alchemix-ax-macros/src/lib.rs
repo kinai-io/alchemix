@@ -161,6 +161,8 @@ pub fn ax_context(attr: TokenStream, item: TokenStream) -> TokenStream {
         });
     }
 
+    let event_arms = build_event_arms(&struct_name, &classes);
+
     let expanded = quote! {
 
         #input
@@ -181,10 +183,18 @@ pub fn ax_context(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             async fn json_event(&self, dispatcher: &ActionDispatcher, event: &Value) -> Vec<AxResponse> {
-                if let Ok(action) = serde_json::from_value::<Sum>(event.clone()) {
-                    return dispatcher.trigger_action(action).await;
+                if let Some(kind) = event.get("kind") {
+                    let kind = kind.as_str().unwrap().to_string();
+                    match(kind.as_str()) {
+                        #event_arms
+                        _ => {
+                            println!("Unknown kind {}", kind);
+                            vec![]
+                        },
+                    }
+                }else {
+                    vec![]
                 }
-                vec![]
             }
 
         }
@@ -192,6 +202,24 @@ pub fn ax_context(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(expanded)
+}
+
+fn build_event_arms(_struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::TokenStream {
+    let mut match_arms = Vec::new();
+    for class in classes {
+        let class_name = class.get_ident().unwrap();
+        match_arms.push(quote! {
+            stringify!(#class_name) => {
+                if let Ok(action) = serde_json::from_value::<#class_name>(event.clone()) {
+                    dispatcher.dispatch_event(action).await
+                }else {
+                    vec![]
+                }
+            },
+        });
+    }
+    let expanded = quote! {#(#match_arms)*};
+    expanded
 }
 
 #[proc_macro_attribute]
@@ -205,7 +233,7 @@ pub fn ax_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_name_str = fn_name.to_string();
 
     let cc_fn_name = snake_to_camel(&fn_name_str);
-    
+
     let executor_fn_name_str = format!("{}_executor", fn_name);
     let executor_name = Ident::new(&executor_fn_name_str, Span::call_site());
 
@@ -234,7 +262,7 @@ pub fn ax_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
             value: Arc<Payload>,
         ) -> Pin<Box<dyn Future<Output = AxResponse> + Send + Sync + '_>> {
             let context: &TestContext = dispatcher.get_context();
-        
+
             Box::pin(async move {
                 // Simulate some work and return an RxResponse
                 if let Ok(payload) = value.downcast::<#value_param_type>() {
@@ -255,7 +283,7 @@ pub fn ax_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 };
             })
         }
-        
+
         async fn #hook_name (#fn_inputs) #fn_output
         #fn_body
     };
@@ -289,7 +317,6 @@ pub fn event_hooks(input: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
-
 
 fn get_param_signature(param: Option<&FnArg>) -> Option<(Ident, Box<Type>)> {
     if let Some(param) = param {
