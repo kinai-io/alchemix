@@ -12,6 +12,11 @@ pub async fn test_client() {
     let body = RxAction::new_update_action("DemoData", &vec![DemoData::new(42)]);
     let body_str = serde_json::to_string(&body).unwrap();
     println!("{}", body_str);
+
+    let action = r#"
+    {"id":"0ad24096-58a3-4a7b-90f1-f0016f4ca7bd","kind":"AddAction","left":2,"right":3}
+    "#;
+
     // let res = client.post(url).body(body_str).send().await;
 
     // let body = RxAction::new_query_ids("DemoData", vec![]);

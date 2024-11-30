@@ -1,10 +1,5 @@
-use alchemix_rx::prelude::*;
+mod rx_model;
+mod flux_model;
 
-
-#[entity]
-pub struct DemoData {
-    value: usize,
-}
-
-#[rx_context(DemoData)]
-pub struct AppContext {}
+pub use rx_model::*;
+pub use flux_model::*;

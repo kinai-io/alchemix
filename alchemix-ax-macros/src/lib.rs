@@ -276,6 +276,14 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     let (_, value_param_type) = value_param_sig.unwrap();
 
+    let context_param_sig = get_param_signature(input.sig.inputs.get(2));
+    if context_param_sig.is_none() {
+        return TokenStream::from(quote! {
+            compile_error!("Function has no parameters");
+        });
+    }
+    let (_, context_param_type) = context_param_sig.unwrap();
+
     let trigger_kind_str = value_param_type.to_token_stream().to_string();
 
     let expanded = quote! {
@@ -289,7 +297,7 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
             dispatcher: &Flux,
             value: Arc<Payload>,
         ) -> Pin<Box<dyn Future<Output = AxResponse> + Send + Sync + '_>> {
-            let context: &TestContext = dispatcher.get_context();
+            let context: &#context_param_type = dispatcher.get_context();
 
             Box::pin(async move {
                 // Simulate some work and return an RxResponse

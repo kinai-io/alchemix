@@ -1,5 +1,5 @@
 use rocket::{
-    catchers, fairing::AdHoc, http::Status, post, routes, serde::json::Json, Build, Rocket, State
+    catchers, fairing::AdHoc, http::Status, post, routes, serde::json::Json, Build, Rocket, State,
 };
 
 use std::collections::HashMap;
@@ -14,14 +14,21 @@ use crate::{
 
 pub struct AlchemixWeb {
     rx_stores: HashMap<String, RxStore>,
+    fluxes: HashMap<String, Flux>,
 }
 
 impl AlchemixWeb {
-
     pub fn new() -> Self {
         Self {
             rx_stores: HashMap::new(),
+            fluxes: HashMap::new(),
         }
+    }
+
+    pub fn with_flux<T: FluxContext>(mut self, name: &str, flux_context: T) -> Self {
+        self.fluxes
+            .insert(name.to_string(), Flux::new(flux_context));
+        self
     }
 
     #[deprecated]
@@ -48,30 +55,52 @@ impl AlchemixWeb {
             .register("/", catchers![auth::forbidded_catcher])
             .mount(
                 "/api",
-                routes![auth::login, auth::refresh_token, action_post],
-            ).attach(AdHoc::on_shutdown("Shutdown Printer", |_| Box::pin(async move {
-                println!("...shutdown has commenced!");
-                // TODO : https://rocket.rs/guide/v0.5/fairings/#callbacks
-            })))
+                routes![auth::login, auth::refresh_token, rx_action_post, flux_post],
+            )
+            .attach(AdHoc::on_shutdown("Shutdown Printer", |_| {
+                Box::pin(async move {
+                    println!("...shutdown has commenced!");
+                    // TODO : https://rocket.rs/guide/v0.5/fairings/#callbacks
+                })
+            }))
     }
-    
+
     #[deprecated]
     pub fn get_rx(&self, name: &str) -> Option<&RxStore> {
         self.rx_stores.get(name)
     }
+
+    pub fn get_flux(&self, name: &str) -> Option<&Flux> {
+        self.fluxes.get(name)
+    }
 }
 
-#[post("/<rx_name>/action", data = "<action>")]
-pub async fn action_post(
+#[post("/rx/<rx_name>/action", data = "<action>")]
+pub async fn rx_action_post(
     rx_name: &str,
     action: Json<RxAction>,
     alchemix_web: &State<AlchemixWeb>,
-    _analytics: &State<Analytics>
+    _analytics: &State<Analytics>,
 ) -> Result<Json<RxResponse>, Status> {
     if let Some(rx) = alchemix_web.get_rx(rx_name) {
         let response = rx.execute_action(action.0).await;
         Ok(Json(response))
     } else {
         Ok(Json(RxResponse::Success()))
+    }
+}
+
+#[post("/flux/<flux_name>/event", data = "<event>")]
+pub async fn flux_post(
+    flux_name: &str,
+    event: Json<Value>,
+    alchemix_web: &State<AlchemixWeb>,
+    _analytics: &State<Analytics>,
+) -> Result<Json<Value>, Status> {
+    if let Some(flux) = alchemix_web.get_flux(flux_name) {
+        let response = flux.dispatch_json_event(event.0).await;
+        Ok(Json(serde_json::to_value(response).unwrap()))
+    } else {
+        Err(Status::ServiceUnavailable)
     }
 }
