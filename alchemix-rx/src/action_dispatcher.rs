@@ -6,7 +6,7 @@ use serde_json::Value;
 
 type Payload = dyn Any + Send + Sync;
 
-pub trait RxAction: Any + Send + Sync + 'static {
+pub trait RxAction: Any + Send + Sync + Clone + 'static {
     fn get_id(&self) -> &str;
     fn get_kind(&self) -> &str;
 }
@@ -23,35 +23,17 @@ pub struct RxResponse {
 pub trait ActionHandler {
     fn get_kind(&self) -> &str;
     fn get_action_id(&self) -> &str;
-    async fn handle(&self, context: Arc<DispatchPayload<'_>>) -> RxResponse;
+    async fn handle(&self, context:  &ActionDispatcher, value: Box<Payload>) -> RxResponse;
 }
 
 pub type SafeActionHandler = dyn ActionHandler + Send + Sync;
 
 #[async_trait]
 pub trait ActionContext: Any + Send + Sync + 'static {
+    
     fn as_any(&self) -> &dyn Any;
 
     fn as_context(&self) -> &dyn ActionContext;
-}
-
-pub struct DispatchPayload<'a> {
-    pub dispatcher: &'a ActionDispatcher,
-    pub value: Arc<Payload>,
-}
-
-impl<'a> DispatchPayload<'a> {
-    pub fn new(r: &'a ActionDispatcher, value: Arc<Payload>) -> Self {
-        Self {
-            dispatcher: r,
-            value,
-        }
-    }
-
-    pub fn get_context<T: ActionContext + 'static>(&self) -> &T {
-        self.dispatcher.get_context()
-    }
-
 }
 
 pub struct ActionDispatcher {
@@ -80,16 +62,19 @@ impl ActionDispatcher {
         }
     }
 
-    pub async fn trigger_action<'a, T: RxAction>(&'a self, action: T) -> Vec<RxResponse> {
+    pub async fn trigger_action<T: RxAction>(&self, action: T) -> Vec<RxResponse> {
         let event_kind = action.get_kind();
         let data_hooks = &self.action_handlers;
         if let Some(handlers) = data_hooks.get(event_kind) {
-            let value_ref = Arc::new(action);
-            let context = Arc::new(DispatchPayload::new(self, value_ref));
+            
+            // let c = DispatchPayload::new(self, value_ref);
+            // let context = Arc::new();
             let mut futures = vec![];
             for handler in handlers {
                 // handler.handle(context.clone(), value_ref.clone()).await;
-                let future = handler.handle(context.clone());
+                // let c = DispatchPayload::new(self, value_ref.clone());
+                let value_ref = Box::new(action.clone());
+                let future = handler.handle(self, value_ref);
                 futures.push(future);
             }
             let res = futures::future::join_all(futures).await;

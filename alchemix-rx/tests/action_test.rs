@@ -1,16 +1,24 @@
 
+use std::pin::Pin;
+
 use alchemix_rx::{
     action_dispatcher::ActionDispatcher,
-    add_demo::{AddAction, AddActionHandler, TestContext},
+    add_demo::{handle_execute_add, AddAction, AddActionHandler, HandlerFunction, TestContext}, prelude::Payload,
 };
 
 #[tokio::test]
 pub async fn test_action() {
+    
     let context = TestContext {};
     let mut dispatcher = ActionDispatcher::new(context);
 
-    dispatcher.add_action_handlers(vec![Box::new(AddActionHandler {})]);
+    
+    
+    let handler:Box<HandlerFunction>  = Box::new(handle_execute_add);
+    
+    dispatcher.add_action_handlers(vec![AddActionHandler::new(Pin::new(handler))]);
 
+    
     let add_action = AddAction { left: 2, right: 3 };
     let res = dispatcher.trigger_action(add_action).await;
 
