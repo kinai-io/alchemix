@@ -24,6 +24,7 @@ impl AlchemixWeb {
         }
     }
 
+    #[deprecated]
     pub fn with_rx(mut self, name: &str, rx: RxStore) -> Self {
         self.rx_stores.insert(name.to_string(), rx);
         self
@@ -53,7 +54,8 @@ impl AlchemixWeb {
                 // TODO : https://rocket.rs/guide/v0.5/fairings/#callbacks
             })))
     }
-
+    
+    #[deprecated]
     pub fn get_rx(&self, name: &str) -> Option<&RxStore> {
         self.rx_stores.get(name)
     }
