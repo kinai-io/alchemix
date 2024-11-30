@@ -3,14 +3,15 @@ use std::{any::Any, sync::Arc};
 use async_trait::async_trait;
 
 use crate::{
-    dispatcher::{DispatchPayload, Dispatcher, EntityAction}, entity::Entity, prelude::{EntitySchema, SQLiteEntityStore, SafeDataHookHandler, SafeSignalHookHandler}, rx::{RxAction, RxResponse}
+    prelude::{EntitySchema, SQLiteEntityStore, SafeDataHookHandler, SafeSignalHookHandler, Entity},
+    rx::{DispatchPayload, Dispatcher, EntityAction},
+    rx::{RxAction, RxResponse},
 };
 
 use serde_json::Value;
 
 #[async_trait]
-pub trait RxContext: Any + Send + Sync + 'static{
-
+pub trait RxContext: Any + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
 
     async fn update_entities(&self, store: &RxStore, kind: &str, ids: Value);
@@ -19,10 +20,15 @@ pub trait RxContext: Any + Send + Sync + 'static{
 
     async fn get_entities(&self, store: &RxStore, kind: &str, ids: &Vec<&str>) -> RxResponse;
 
-    async fn query_property(&self, store: &RxStore, kind: &str, property_name: &str, expression: &str) -> RxResponse;
+    async fn query_property(
+        &self,
+        store: &RxStore,
+        kind: &str,
+        property_name: &str,
+        expression: &str,
+    ) -> RxResponse;
 
     async fn signal(&self, store: &RxStore, signal: Value) -> RxResponse;
-
 }
 
 pub struct RxStore {
@@ -86,18 +92,29 @@ impl RxStore {
         self.store.get_entities_of_kind(&kind.name, ids).await
     }
 
-    pub async fn query_property<T: Entity>(&self, kind: EntitySchema<T>, property_name: &str, expression: &str) -> Vec<T> {
-        self.store.query_entities(&kind.name, property_name, expression).await
+    pub async fn query_property<T: Entity>(
+        &self,
+        kind: EntitySchema<T>,
+        property_name: &str,
+        expression: &str,
+    ) -> Vec<T> {
+        self.store
+            .query_entities(&kind.name, property_name, expression)
+            .await
     }
 
-    pub async fn signal<T:Entity, R: Entity>(&self, signal_entity: T) -> Result<R, String> {
+    pub async fn signal<T: Entity, R: Entity>(&self, signal_entity: T) -> Result<R, String> {
         let context = Arc::new(DispatchPayload::new(self));
-        self.dispatcher.dispatch_signal_hook(context, signal_entity).await
+        self.dispatcher
+            .dispatch_signal_hook(context, signal_entity)
+            .await
     }
 
-    pub async fn signal_action<T:Entity>(&self, signal_entity: T) -> Result<Value, String> {
+    pub async fn signal_action<T: Entity>(&self, signal_entity: T) -> Result<Value, String> {
         let context = Arc::new(DispatchPayload::new(self));
-        self.dispatcher.dispatch_signal_action(context, signal_entity).await
+        self.dispatcher
+            .dispatch_signal_action(context, signal_entity)
+            .await
     }
 
     pub async fn execute_action(&self, action: RxAction) -> RxResponse {
@@ -117,11 +134,11 @@ impl RxStore {
                 rx_context.get_entities(&self, &kind, &ids_ref).await
             }
             RxAction::QueryProperty(kind, property_name, expression) => {
-                rx_context.query_property(&self, &kind, &property_name, &expression).await
+                rx_context
+                    .query_property(&self, &kind, &property_name, &expression)
+                    .await
             }
-            RxAction::Signal(signal) => {
-                rx_context.signal(&self, signal).await
-            }
+            RxAction::Signal(signal) => rx_context.signal(&self, signal).await,
         }
     }
 }

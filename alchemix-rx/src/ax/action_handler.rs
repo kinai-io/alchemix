@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use crate::{
-    action_dispatcher::{ActionDispatcher, AxResponse},
+    ax::{ActionDispatcher, AxResponse},
     prelude::Payload,
 };
 

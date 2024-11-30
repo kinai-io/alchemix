@@ -4,22 +4,22 @@ use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::action_handler::ActionHandler;
+use crate::ax::ActionHandler;
 
 pub struct ActionDispatcher {
-    context: Box<dyn ActionContext>,
+    context: Box<dyn AxContext>,
     action_handlers: HashMap<String, Vec<ActionHandler>>,
 }
 
 impl ActionDispatcher {
-    pub fn new<T: ActionContext>(context: T) -> Self {
+    pub fn new<T: AxContext>(context: T) -> Self {
         Self {
             context: Box::new(context),
             action_handlers: HashMap::new(),
         }
     }
 
-    pub fn get_context<T: ActionContext + 'static>(&self) -> &T {
+    pub fn get_context<T: AxContext + 'static>(&self) -> &T {
         self.context.as_any().downcast_ref::<T>().unwrap()
     }
 
@@ -56,10 +56,10 @@ impl ActionDispatcher {
 
 
 #[async_trait]
-pub trait ActionContext: Any + Send + Sync + 'static {
+pub trait AxContext: Any + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
 
-    fn as_context(&self) -> &dyn ActionContext;
+    fn as_context(&self) -> &dyn AxContext;
 }
 
 pub trait AxAction: Any + Send + Sync {

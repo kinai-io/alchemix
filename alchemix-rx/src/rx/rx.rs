@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::entity::Entity;
+use crate::entity_store::Entity;
 
 // {"UpdateEntities":["DemoData",[{"id":"9c682bbb-fa84-4d7f-8e4e-d40ea8cd11df","kind":"DemoData","value":42}]]}
 

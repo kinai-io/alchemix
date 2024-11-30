@@ -1,6 +1,6 @@
 use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, FromRow, Pool, Sqlite};
 
-use crate::entity::{Entity, FieldIndex};
+use crate::entity_store::{Entity, FieldIndex};
 
 #[derive(FromRow)]
 struct EntityData {
