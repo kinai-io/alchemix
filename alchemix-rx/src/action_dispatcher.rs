@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::Value;
 
-type Payload = dyn Any + Send + Sync;
+use crate::prelude::Payload;
 
 pub trait RxAction: Any + Send + Sync + 'static {
     fn get_id(&self) -> &str;

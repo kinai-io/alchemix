@@ -1,8 +1,8 @@
-use async_trait::async_trait;
 use std::{any::Any, future::Future, pin::Pin, sync::Arc};
 
 use crate::{
-    action_dispatcher::{ActionContext, ActionDispatcher, ActionHandler, RxAction, RxResponse},
+    action_dispatcher::{ActionContext, ActionDispatcher, RxAction, RxResponse},
+    action_handler::{DefaultActionHandler, HandlerFunction},
     prelude::Payload,
 };
 use serde::Serialize;
@@ -28,7 +28,7 @@ pub struct Sum {
     pub result: u16,
 }
 
-pub async fn execute_add(
+pub async fn add_action(
     action: &AddAction,
     _dispatcher: &ActionDispatcher,
     context: &TestContext,
@@ -41,7 +41,12 @@ pub async fn execute_add(
     Ok(Sum { result: res })
 }
 
-pub fn handle_execute_add(
+pub fn create_add_action_handler() -> Box<DefaultActionHandler> {
+    let handler: Pin<Box<HandlerFunction>> = Box::pin(add_action_executor);
+    DefaultActionHandler::new(handler, "AddAction", "execute_add")
+}
+
+pub fn add_action_executor(
     dispatcher: &ActionDispatcher,
     value: Arc<Payload>,
 ) -> Pin<Box<dyn Future<Output = RxResponse> + Send + Sync + '_>> {
@@ -51,13 +56,13 @@ pub fn handle_execute_add(
         // Simulate some work and return an RxResponse
         if let Ok(payload) = value.downcast::<AddAction>() {
             let p = payload.as_ref();
-            let res = execute_add(p, dispatcher, context).await;
+            let res = add_action(p, dispatcher, context).await;
             if let Ok(res) = res {
-               return  RxResponse {
+                return RxResponse {
                     success: true,
                     handler: "execute_add".to_string(),
                     value: Some(serde_json::to_value(res).unwrap()),
-                }
+                };
             }
         }
         return RxResponse {
@@ -66,40 +71,12 @@ pub fn handle_execute_add(
             value: None,
         };
     })
-
-    //
-}
-
-pub type HandlerFunction = fn(&ActionDispatcher, Arc<Payload>) -> Pin<Box<dyn Future<Output = RxResponse> + Send + Sync + '_>>;
-
-pub struct AddActionHandler {
-    handler_func: Pin<Box<HandlerFunction>>,
-}
-
-impl AddActionHandler {
-    pub fn new(handler_func: Pin<Box<HandlerFunction>>) -> Box<AddActionHandler> {
-        Box::new(AddActionHandler { handler_func })
-    }
-}
-
-#[async_trait]
-impl ActionHandler for AddActionHandler {
-    fn get_kind(&self) -> &str {
-        "AddAction"
-    }
-
-    fn get_action_id(&self) -> &str {
-        "execute_add"
-    }
-
-    async fn handle(&self, context: &ActionDispatcher, value: Arc<Payload>) -> RxResponse {
-        (self.handler_func)(context, value).await
-    }
 }
 
 pub struct TestContext {}
 
 impl ActionContext for TestContext {
+    
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -113,4 +90,22 @@ impl TestContext {
     pub fn log(&self, text: &str) {
         println!("Log: {}", text);
     }
+}
+
+#[tokio::test]
+pub async fn test_action_unfold() {
+    
+    let context = TestContext {};
+    let mut dispatcher = ActionDispatcher::new(context);
+
+    
+    dispatcher.add_action_handlers(vec![create_add_action_handler()]);
+
+    
+    let add_action = AddAction { left: 2, right: 3 };
+    
+    let res = dispatcher.trigger_action(add_action).await;
+
+    println!("Res : {:?}", res);
+    println!("Res JSON : {:?}", serde_json::to_string(&res).unwrap());
 }
