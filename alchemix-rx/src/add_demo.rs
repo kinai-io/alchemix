@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use std::{any::Any, future::Future, pin::Pin};
+use std::{any::Any, future::Future, pin::Pin, sync::Arc};
 
 use crate::{
     action_dispatcher::{ActionContext, ActionDispatcher, ActionHandler, RxAction, RxResponse},
@@ -7,7 +7,7 @@ use crate::{
 };
 use serde::Serialize;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AddAction {
     pub left: u16,
     pub right: u16,
@@ -43,7 +43,7 @@ pub async fn execute_add(
 
 pub fn handle_execute_add(
     dispatcher: &ActionDispatcher,
-    value: Box<Payload>,
+    value: Arc<Payload>,
 ) -> Pin<Box<dyn Future<Output = RxResponse> + Send + Sync + '_>> {
     let context: &TestContext = dispatcher.get_context();
 
@@ -70,7 +70,7 @@ pub fn handle_execute_add(
     //
 }
 
-pub type HandlerFunction = fn(&ActionDispatcher, Box<Payload>) -> Pin<Box<dyn Future<Output = RxResponse> + Send + Sync + '_>>;
+pub type HandlerFunction = fn(&ActionDispatcher, Arc<Payload>) -> Pin<Box<dyn Future<Output = RxResponse> + Send + Sync + '_>>;
 
 pub struct AddActionHandler {
     handler_func: Pin<Box<HandlerFunction>>,
@@ -92,7 +92,7 @@ impl ActionHandler for AddActionHandler {
         "execute_add"
     }
 
-    async fn handle(&self, context: &ActionDispatcher, value: Box<Payload>) -> RxResponse {
+    async fn handle(&self, context: &ActionDispatcher, value: Arc<Payload>) -> RxResponse {
         (self.handler_func)(context, value).await
     }
 }

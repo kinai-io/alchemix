@@ -6,7 +6,7 @@ use serde_json::Value;
 
 type Payload = dyn Any + Send + Sync;
 
-pub trait RxAction: Any + Send + Sync + Clone + 'static {
+pub trait RxAction: Any + Send + Sync + 'static {
     fn get_id(&self) -> &str;
     fn get_kind(&self) -> &str;
 }
@@ -23,14 +23,14 @@ pub struct RxResponse {
 pub trait ActionHandler {
     fn get_kind(&self) -> &str;
     fn get_action_id(&self) -> &str;
-    async fn handle(&self, context:  &ActionDispatcher, value: Box<Payload>) -> RxResponse;
+    async fn handle(&self, context:  &ActionDispatcher, value: Arc<Payload>) -> RxResponse;
 }
 
 pub type SafeActionHandler = dyn ActionHandler + Send + Sync;
 
 #[async_trait]
 pub trait ActionContext: Any + Send + Sync + 'static {
-    
+
     fn as_any(&self) -> &dyn Any;
 
     fn as_context(&self) -> &dyn ActionContext;
@@ -68,13 +68,13 @@ impl ActionDispatcher {
         if let Some(handlers) = data_hooks.get(event_kind) {
             
             // let c = DispatchPayload::new(self, value_ref);
-            // let context = Arc::new();
+            let value = Arc::new(action);
             let mut futures = vec![];
             for handler in handlers {
                 // handler.handle(context.clone(), value_ref.clone()).await;
                 // let c = DispatchPayload::new(self, value_ref.clone());
-                let value_ref = Box::new(action.clone());
-                let future = handler.handle(self, value_ref);
+                // let value_ref = Box::new(action.clone());
+                let future = handler.handle(self, value.clone());
                 futures.push(future);
             }
             let res = futures::future::join_all(futures).await;
