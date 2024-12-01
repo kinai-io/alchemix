@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, FnArg, GenericArgument, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type,
+    parse_macro_input, FnArg, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type,
     TypeReference,
 };
 
