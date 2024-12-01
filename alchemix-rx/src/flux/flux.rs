@@ -77,8 +77,3 @@ impl Flux {
         self.context.json_event(self, &event).await
     }
 }
-
-pub struct EventSchema<T> {
-    pub name: &'static str,
-    pub _marker: PhantomData<T>,
-}

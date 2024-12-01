@@ -52,7 +52,7 @@ pub fn flux_context(attr: TokenStream, item: TokenStream) -> TokenStream {
         let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
 
         entities_entries.push(quote! {
-            pub const #class_name_sk: EventSchema<#class_name> = EventSchema{ name: stringify!(#class_name), _marker: PhantomData};
+            pub const #class_name_sk: EntitySchema<#class_name> = EntitySchema{ name: stringify!(#class_name), _marker: PhantomData};
         });
     }
 
