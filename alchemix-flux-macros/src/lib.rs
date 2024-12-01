@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, FnArg, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type,
+    parse_macro_input, FnArg, GenericArgument, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type,
     TypeReference,
 };
 
@@ -22,7 +22,7 @@ pub fn flux_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 classes.push(meta.path);
                 Ok(())
             });
-        }else if meta.path.is_ident("hooks") {
+        } else if meta.path.is_ident("hooks") {
             let _ = meta.parse_nested_meta(|meta| {
                 // let name = meta.path.get_ident().unwrap().to_string();
                 hooks.push(meta.path);
@@ -131,6 +131,8 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_output = &input.sig.output;
     let fn_body = &input.block;
 
+    let unit_return = returns_unit(&input);
+
     let fn_name_str = fn_name.to_string();
 
     let cc_fn_name = snake_to_camel(&fn_name_str);
@@ -159,6 +161,11 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let trigger_kind_str = value_param_type.to_token_stream().to_string();
 
+    let create_response = if unit_return {
+        quote! {AxResponse::ok(#fn_name_str)}
+    } else {
+        quote! {AxResponse::entity(#fn_name_str, res)}
+    };
     let expanded = quote! {
 
         pub fn #fn_name() -> EventHandler {
@@ -177,19 +184,13 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 if let Ok(payload) = value.downcast::<#value_param_type>() {
                     let p = payload.as_ref();
                     let res = #hook_name(p, dispatcher, context).await;
-                    if let Ok(res) = res {
-                        return AxResponse {
-                            success: true,
-                            handler: #fn_name_str.to_string(),
-                            value: Some(serde_json::to_value(res).unwrap()),
-                        };
+                    match res {
+                        Ok(res) => #create_response,
+                        Err(message) => AxResponse::error(#fn_name_str, &message)
                     }
+                }else {
+                    AxResponse::error( #fn_name_str, "Entity downcast error")
                 }
-                return AxResponse {
-                    success: false,
-                    handler: #fn_name_str.to_string(),
-                    value: None,
-                };
             })
         }
 
@@ -197,6 +198,29 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #fn_body
     };
     TokenStream::from(expanded)
+}
+
+fn returns_unit(input: &ItemFn) -> bool {
+    // Extract the return type of the function
+    if let syn::ReturnType::Type(_, ty) = &input.sig.output {
+        if let syn::Type::Path(path) = ty.as_ref() {
+            if let Some(syn::PathSegment {
+                arguments: syn::PathArguments::AngleBracketed(bracket),
+                ..
+            }) = path.path.segments.first()
+            {
+                if let Some(GenericArgument::Type(first_type)) = bracket.args.first() {
+                    // Check if the first generic argument is a unit tuple "()"
+                    if let syn::Type::Tuple(tuple) = first_type {
+                        if tuple.elems.is_empty() {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
 }
 
 fn get_param_signature(param: Option<&FnArg>) -> Option<(Ident, Box<Type>)> {

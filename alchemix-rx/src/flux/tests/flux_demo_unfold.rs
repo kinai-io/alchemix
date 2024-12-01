@@ -44,19 +44,14 @@ pub fn add_action_executor(
         if let Ok(payload) = value.downcast::<AddAction>() {
             let p = payload.as_ref();
             let res = add_action(p, dispatcher, context).await;
-            if let Ok(res) = res {
-                return AxResponse {
-                    success: true,
-                    handler: "execute_add".to_string(),
-                    value: Some(serde_json::to_value(res).unwrap()),
-                };
+            match res {
+                Ok(res) => AxResponse::entity("execute_add", res),
+                Err(message) => AxResponse::error( "execute_add", &message)
             }
+        }else {
+            AxResponse::error( "execute_add", "Action downcast error")
         }
-        return AxResponse {
-            success: false,
-            handler: "execute_add".to_string(),
-            value: None,
-        };
+        
     })
 }
 

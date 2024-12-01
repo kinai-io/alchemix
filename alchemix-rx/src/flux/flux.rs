@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, marker::PhantomData, sync::Arc};
+use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -88,5 +88,36 @@ pub struct EventSchema<T> {
 pub struct AxResponse {
     pub success: bool,
     pub handler: String,
-    pub value: Option<Value>,
+    value: Option<Value>,
+    pub message: String
+}
+
+impl AxResponse {
+    pub fn error(handler: &str, message: &str)-> Self {
+        Self {
+            success: false,
+            handler: handler.to_string(),
+            value: None,
+            message: message.to_string()
+        }
+    }
+
+    pub fn ok(handler: &str)-> Self {
+        Self {
+            success: true,
+            handler: handler.to_string(),
+            value: None,
+            message: "".to_string()
+        }
+    }
+
+    pub fn entity<T: Entity>(handler: &str, entity: T)-> Self {
+        Self {
+            success: true,
+            handler: handler.to_string(),
+            value: Some(serde_json::to_value(entity).unwrap()),
+            message: "".to_string()
+        }
+    }
+
 }
