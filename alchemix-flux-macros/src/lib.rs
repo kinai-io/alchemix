@@ -131,8 +131,6 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_output = &input.sig.output;
     let fn_body = &input.block;
 
-    let unit_return = returns_unit(&input);
-
     let fn_name_str = fn_name.to_string();
 
     let cc_fn_name = snake_to_camel(&fn_name_str);
@@ -193,29 +191,6 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #fn_body
     };
     TokenStream::from(expanded)
-}
-
-fn returns_unit(input: &ItemFn) -> bool {
-    // Extract the return type of the function
-    if let syn::ReturnType::Type(_, ty) = &input.sig.output {
-        if let syn::Type::Path(path) = ty.as_ref() {
-            if let Some(syn::PathSegment {
-                arguments: syn::PathArguments::AngleBracketed(bracket),
-                ..
-            }) = path.path.segments.first()
-            {
-                if let Some(GenericArgument::Type(first_type)) = bracket.args.first() {
-                    // Check if the first generic argument is a unit tuple "()"
-                    if let syn::Type::Tuple(tuple) = first_type {
-                        if tuple.elems.is_empty() {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return false;
 }
 
 fn get_param_signature(param: Option<&FnArg>) -> Option<(Ident, Box<Type>)> {
