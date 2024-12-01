@@ -16,13 +16,13 @@ pub async fn add_action(
     action: &AddAction,
     _dispatcher: &Flux,
     context: &AdderContext,
-) -> Result<Sum, String> {
+) -> HookResponse {
     let res = action.left + action.right;
     context.log(&format!(
         "Add: {} + {} = {}",
         action.left, action.right, res
     ));
-    Ok(Sum::new(res))
+    HookResponse::entity(Sum::new(res))
 }
 
 #[flux_hook]
@@ -30,10 +30,10 @@ pub async fn sum_history(
     action: &Sum,
     _dispatcher: &Flux,
     _context: &AdderContext,
-) -> Result<(), String> {
+) -> HookResponse {
     println!("SUM History: {}", action.result);
 
-    Ok(())
+    HookResponse::ok()
 }
 
 #[flux_context(

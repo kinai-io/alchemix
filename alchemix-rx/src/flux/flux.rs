@@ -55,7 +55,7 @@ impl Flux {
             let mut next_futures = vec![];
             for response_entry in &res {
                 if response_entry.success {
-                    if let Some(next_event) = &response_entry.value {
+                    for next_event in &response_entry.entities {
                         let future = self.context.json_event(self, next_event);
                         next_futures.push(future);
                     }
@@ -67,15 +67,11 @@ impl Flux {
             vec![]
         }
     }
-    
 
     pub async fn dispatch_json_event(&self, event: Value) -> Vec<HookResponse> {
         self.context.json_event(self, &event).await
     }
-    
 }
-
-
 
 pub struct EventSchema<T> {
     pub name: &'static str,

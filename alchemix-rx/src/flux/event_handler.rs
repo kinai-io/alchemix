@@ -49,36 +49,46 @@ pub type HandlerFunction = fn(
 pub struct HookResponse {
     pub success: bool,
     pub handler: String,
-    pub value: Option<Value>,
+    pub entities: Vec<Value>,
     pub message: String
 }
 
 impl HookResponse {
-    pub fn error(handler: &str, message: &str)-> Self {
+
+    pub fn set_handler(&mut self, handler: &str) {
+        self.handler = handler.to_string();
+    }
+
+    pub fn error(message: &str)-> Self {
         Self {
             success: false,
-            handler: handler.to_string(),
-            value: None,
+            handler: "".to_string(),
+            entities: vec![],
             message: message.to_string()
         }
     }
 
-    pub fn ok(handler: &str)-> Self {
+    pub fn ok()-> Self {
         Self {
             success: true,
-            handler: handler.to_string(),
-            value: None,
+            handler: "".to_string(),
+            entities: vec![],
             message: "".to_string()
         }
     }
 
-    pub fn entity<T: Entity>(handler: &str, entity: T)-> Self {
+    pub fn entity<T: Entity>( entity: T)-> Self {
         Self {
             success: true,
-            handler: handler.to_string(),
-            value: Some(serde_json::to_value(entity).unwrap()),
+            handler: "".to_string(),
+            entities: vec![serde_json::to_value(entity).unwrap()],
             message: "".to_string()
         }
+    }
+
+    pub fn with_entity<T: Entity>(mut self, entity: T)-> Self {
+       self.entities.push(serde_json::to_value(entity).unwrap());
+       self
     }
 
 }

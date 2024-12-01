@@ -161,11 +161,6 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let trigger_kind_str = value_param_type.to_token_stream().to_string();
 
-    let create_response = if unit_return {
-        quote! {HookResponse::ok(#fn_name_str)}
-    } else {
-        quote! {HookResponse::entity(#fn_name_str, res)}
-    };
     let expanded = quote! {
 
         pub fn #fn_name() -> EventHandler {
@@ -183,13 +178,13 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 // Simulate some work and return an RxResponse
                 if let Ok(payload) = value.downcast::<#value_param_type>() {
                     let p = payload.as_ref();
-                    let res = #hook_name(p, dispatcher, context).await;
-                    match res {
-                        Ok(res) => #create_response,
-                        Err(message) => HookResponse::error(#fn_name_str, &message)
-                    }
+                    let mut res = #hook_name(p, dispatcher, context).await;
+                    res.set_handler(#fn_name_str);
+                    res
                 }else {
-                    HookResponse::error( #fn_name_str, "Entity downcast error")
+                    let mut res = HookResponse::error( "Action downcast error");
+                    res.set_handler(#fn_name_str);
+                    res
                 }
             })
         }

@@ -18,13 +18,13 @@ pub async fn add_action(
     action: &AddAction,
     _dispatcher: &Flux,
     context: &TestContext,
-) -> Result<Sum, String> {
+) -> HookResponse {
     let res = action.left + action.right;
     context.log(&format!(
         "Add: {} + {} = {}",
         action.left, action.right, res
     ));
-    Ok(Sum::new(action.left, action.right, res))
+    HookResponse::entity(Sum::new(action.left, action.right, res))
 }
 
 #[flux_hook]
@@ -32,10 +32,10 @@ pub async fn sum_history(
     action: &Sum,
     _dispatcher: &Flux,
     context: &TestContext,
-) -> Result<(), String> {
+) -> HookResponse {
     println!("SUM History: {}", action.result);
     block_on(context.entity_store.update_entities(&vec![action.clone()]));
-    Ok(())
+    HookResponse::ok()
 }
 
 #[flux_context(
