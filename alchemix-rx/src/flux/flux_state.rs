@@ -15,11 +15,14 @@ impl FluxState {
     pub fn save<T: Entity>(&self, shard: &str, entities: &Vec<T>) {
         let store = self.get_store(shard);
         block_on(store.update_entities(entities));
+        block_on(store.close());
     }
 
     pub fn get_entities_of_kind<E: Entity>(&self, shard: &str, kind: &str, ids: &Vec<&str>) -> Vec<E> {
         let store = self.get_store(shard);
-        block_on(store.get_entities_of_kind(kind, ids))
+        let res = block_on(store.get_entities_of_kind(kind, ids));
+        block_on(store.close());
+        res
     }
 
     pub async fn query_entities<E: Entity>(
@@ -30,7 +33,9 @@ impl FluxState {
         expr: &str,
     ) -> Vec<E> {
         let store = self.get_store(shard);
-        block_on(store.query_entities(kind, property_name, expr))
+        let res = block_on(store.query_entities(kind, property_name, expr));
+        block_on(store.close());
+        res
     }
 
     fn get_store(&self, shard: &str) -> SQLiteEntityStore{
