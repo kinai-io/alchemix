@@ -18,9 +18,9 @@ impl FluxState {
         block_on(store.close());
     }
 
-    pub fn get_entities_of_kind<E: Entity>(&self, shard: &str, kind: &str, ids: &Vec<&str>) -> Vec<E> {
+    pub fn get_entities_of_kind<E: Entity>(&self, shard: &str, kind: &EntitySchema<E>, ids: &Vec<&str>) -> Vec<E> {
         let store = self.get_store(shard);
-        let res = block_on(store.get_entities_of_kind(kind, ids));
+        let res = block_on(store.get_entities_of_kind(&kind.name, ids));
         block_on(store.close());
         res
     }
@@ -28,12 +28,12 @@ impl FluxState {
     pub async fn query_entities<E: Entity>(
         &self,
         shard: &str,
-        kind: &str,
+        kind: &EntitySchema<E>,
         property_name: &str,
         expr: &str,
     ) -> Vec<E> {
         let store = self.get_store(shard);
-        let res = block_on(store.query_entities(kind, property_name, expr));
+        let res = block_on(store.query_entities(&kind.name, property_name, expr));
         block_on(store.close());
         res
     }
