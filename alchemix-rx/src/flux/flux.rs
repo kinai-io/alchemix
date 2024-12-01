@@ -4,17 +4,19 @@ use serde_json::Value;
 
 use crate::{flux::EventHandler, prelude::Entity};
 
-use super::{FluxContext, HookResponse};
+use super::{FluxContext, FluxState, HookResponse};
 
 pub struct Flux {
+    state: FluxState,
     context: Box<dyn FluxContext>,
     action_handlers: HashMap<String, Vec<EventHandler>>,
 }
 
 impl Flux {
-    pub fn new<T: FluxContext>(context: T) -> Self {
+    pub fn new<T: FluxContext>(root_path: &str, context: T) -> Self {
         let hooks = context.get_hooks();
         let mut instance = Self {
+            state: FluxState::new(root_path),
             context: Box::new(context),
             action_handlers: HashMap::new(),
         };
@@ -24,6 +26,10 @@ impl Flux {
 
     pub fn get_context<T: FluxContext + 'static>(&self) -> &T {
         self.context.as_any().downcast_ref::<T>().unwrap()
+    }
+
+    pub fn get_state(&self) -> &FluxState {
+        &self.state
     }
 
     fn add_action_handlers(&mut self, handlers: Vec<EventHandler>) {

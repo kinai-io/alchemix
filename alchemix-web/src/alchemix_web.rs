@@ -13,21 +13,24 @@ use crate::{
 };
 
 pub struct AlchemixWeb {
+    data_path: String,
     rx_stores: HashMap<String, RxStore>,
     fluxes: HashMap<String, Flux>,
 }
 
 impl AlchemixWeb {
-    pub fn new() -> Self {
+    pub fn new(data_path: &str) -> Self {
         Self {
+            data_path: data_path.to_string(),
             rx_stores: HashMap::new(),
             fluxes: HashMap::new(),
         }
     }
 
     pub fn with_flux<T: FluxContext>(mut self, name: &str, flux_context: T) -> Self {
+        let store_path= format!("{}/{}",self.data_path, name);
         self.fluxes
-            .insert(name.to_string(), Flux::new(flux_context));
+            .insert(name.to_string(), Flux::new(&store_path, flux_context));
         self
     }
 

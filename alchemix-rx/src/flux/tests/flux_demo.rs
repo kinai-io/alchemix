@@ -16,7 +16,7 @@ pub struct Sum {
 #[flux_hook]
 pub async fn add_action(
     action: &AddAction,
-    _dispatcher: &Flux,
+    _dispatcher: &FluxState,
     context: &TestContext,
 ) -> HookResponse {
     let res = action.left + action.right;
@@ -30,11 +30,11 @@ pub async fn add_action(
 #[flux_hook]
 pub async fn sum_history(
     action: &Sum,
-    _dispatcher: &Flux,
-    context: &TestContext,
+    state: &FluxState,
+    _context: &TestContext,
 ) -> HookResponse {
     println!("SUM History: {}", action.result);
-    block_on(context.entity_store.update_entities(&vec![action.clone()]));
+    state.save("default", &vec![action.clone()]);
     HookResponse::ok()
 }
 
@@ -43,13 +43,12 @@ pub async fn sum_history(
     hooks(add_action, sum_history)
 )]
 pub struct TestContext {
-    entity_store: SQLiteEntityStore
 }
 
 impl TestContext {
 
-    pub fn new(path: &str) -> Self {
-        Self { entity_store: SQLiteEntityStore::new(path) }
+    pub fn new() -> Self {
+        Self {  }
     }
 
     pub fn log(&self, text: &str) {
@@ -59,8 +58,9 @@ impl TestContext {
 
 #[tokio::test]
 pub async fn test_flux() {
-    let context = TestContext::new("test-data/out/flux-demo/test.db");
-    let dispatcher = Flux::new(context);
+    let context = TestContext::new();
+    
+    let dispatcher = Flux::new("test-data/out/flux-state", context);
     
     let action = AddAction::new(2, 3);
 

@@ -14,7 +14,7 @@ pub struct Sum {
 #[flux_hook]
 pub async fn add_action(
     action: &AddAction,
-    _dispatcher: &Flux,
+    _dispatcher: &FluxState,
     context: &AdderContext,
 ) -> HookResponse {
     let res = action.left + action.right;
@@ -28,7 +28,7 @@ pub async fn add_action(
 #[flux_hook]
 pub async fn sum_history(
     action: &Sum,
-    _dispatcher: &Flux,
+    _dispatcher: &FluxState,
     _context: &AdderContext,
 ) -> HookResponse {
     println!("SUM History: {}", action.result);

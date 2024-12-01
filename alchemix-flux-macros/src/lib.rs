@@ -171,12 +171,13 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
             value: Arc<Payload>,
         ) -> Pin<Box<dyn Future<Output = HookResponse> + Send + Sync + '_>> {
             let context: &#context_param_type = dispatcher.get_context();
+            let state: &FluxState = dispatcher.get_state();
 
             Box::pin(async move {
                 // Simulate some work and return an RxResponse
                 if let Ok(payload) = value.downcast::<#value_param_type>() {
                     let p = payload.as_ref();
-                    let mut res = #hook_name(p, dispatcher, context).await;
+                    let mut res = #hook_name(p, state, context).await;
                     res.set_handler(#fn_name_str);
                     res
                 }else {

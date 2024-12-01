@@ -15,7 +15,7 @@ pub struct Sum {
 
 pub async fn add_action(
     action: &AddAction,
-    _dispatcher: &Flux,
+    _state: &FluxState,
     context: &TestContext,
 ) -> HookResponse {
     let res = action.left + action.right;
@@ -38,12 +38,13 @@ pub fn add_action_executor(
     value: Arc<Payload>,
 ) -> Pin<Box<dyn Future<Output = HookResponse> + Send + Sync + '_>> {
     let context: &TestContext = dispatcher.get_context();
+    let state: &FluxState = dispatcher.get_state();
 
     Box::pin(async move {
         // Simulate some work and return an RxResponse
         if let Ok(payload) = value.downcast::<AddAction>() {
             let p = payload.as_ref();
-            let mut res = add_action(p, dispatcher, context).await;
+            let mut res = add_action(p, state, context).await;
             res.set_handler("execute_add");
             res
         }else {
@@ -89,7 +90,7 @@ impl FluxContext for TestContext {
 #[tokio::test]
 pub async fn test_action_unfold() {
     let context = TestContext {};
-    let dispatcher = Flux::new(context);
+    let dispatcher = Flux::new("test-data/out/flux-state-unfold", context);
 
     let add_action = AddAction::new(2, 3);
 

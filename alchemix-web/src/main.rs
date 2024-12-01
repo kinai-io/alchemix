@@ -8,7 +8,7 @@ async fn rocket() -> Rocket<Build> {
 
     let adder_flux = AdderContext {};
 
-    AlchemixWeb::new()
+    AlchemixWeb::new("test-data/out")
         .with_rx("demo", rx_store)
         .with_flux("adder", adder_flux)
         .serve()
