@@ -64,7 +64,7 @@ pub async fn test_flux() {
     
     let action = AddAction::new(2, 3);
 
-    let res = dispatcher.dispatch_event(action.clone()).await;
+    let res = dispatcher.push(action.clone()).await;
 
     println!("Res : {:?}", res);
     println!("Res JSON : {:?}", serde_json::to_string(&res).unwrap());

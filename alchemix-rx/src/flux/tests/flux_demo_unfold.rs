@@ -76,26 +76,24 @@ impl FluxContext for TestContext {
 
     async fn json_event(&self, dispatcher: &Flux, event: &Value) -> Vec<HookResponse> {
         if let Ok(action) = serde_json::from_value::<Sum>(event.clone()) {
-            return dispatcher.dispatch_event(action).await;
+            return dispatcher.push(action).await;
         }
         vec![]
     }
 
     fn get_hooks(&self) -> Vec<EventHandler> {
-        vec![]
+        vec![create_add_action_handler()]
     }
 }
 
 #[tokio::test]
 pub async fn test_action_unfold() {
     let context = TestContext {};
-    let mut dispatcher = Flux::new(context);
-
-    dispatcher.add_action_handlers(vec![create_add_action_handler()]);
+    let dispatcher = Flux::new(context);
 
     let add_action = AddAction::new(2, 3);
 
-    let res = dispatcher.dispatch_event(add_action).await;
+    let res = dispatcher.push(add_action).await;
 
     println!("Res : {:?}", res);
     println!("Res JSON : {:?}", serde_json::to_string(&res).unwrap());

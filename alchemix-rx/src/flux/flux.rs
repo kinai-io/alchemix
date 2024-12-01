@@ -26,7 +26,7 @@ impl Flux {
         self.context.as_any().downcast_ref::<T>().unwrap()
     }
 
-    pub fn add_action_handlers(&mut self, handlers: Vec<EventHandler>) {
+    fn add_action_handlers(&mut self, handlers: Vec<EventHandler>) {
         let data_hooks = &mut self.action_handlers;
         for handler in handlers {
             let event_kind = handler.get_kind();
@@ -35,7 +35,7 @@ impl Flux {
         }
     }
 
-    pub async fn dispatch_event<T: Entity>(&self, action: T) -> Vec<HookResponse> {
+    pub async fn push<T: Entity>(&self, action: T) -> Vec<HookResponse> {
         let event_kind = action.get_kind();
         let data_hooks = &self.action_handlers;
         if let Some(handlers) = data_hooks.get(event_kind) {
@@ -71,7 +71,7 @@ impl Flux {
         }
     }
 
-    pub async fn dispatch_json_event(&self, event: Value) -> Vec<HookResponse> {
+    pub async fn push_json(&self, event: Value) -> Vec<HookResponse> {
         self.context.json_event(self, &event).await
     }
 }

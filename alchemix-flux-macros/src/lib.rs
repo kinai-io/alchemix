@@ -112,7 +112,7 @@ fn build_event_arms(_struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::T
         match_arms.push(quote! {
             stringify!(#class_name) => {
                 if let Ok(action) = serde_json::from_value::<#class_name>(event.clone()) {
-                    dispatcher.dispatch_event(action).await
+                    dispatcher.push(action).await
                 }else {
                     vec![]
                 }

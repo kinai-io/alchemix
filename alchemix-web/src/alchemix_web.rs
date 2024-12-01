@@ -98,7 +98,7 @@ pub async fn flux_post(
     _analytics: &State<Analytics>,
 ) -> Result<Json<Value>, Status> {
     if let Some(flux) = alchemix_web.get_flux(flux_name) {
-        let response = flux.dispatch_json_event(event.0).await;
+        let response = flux.push_json(event.0).await;
         Ok(Json(serde_json::to_value(response).unwrap()))
     } else {
         Err(Status::ServiceUnavailable)
