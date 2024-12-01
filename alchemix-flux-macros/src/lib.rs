@@ -77,7 +77,7 @@ pub fn flux_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 self
             }
 
-            async fn json_event(&self, dispatcher: &Flux, event: &Value) -> Vec<AxResponse> {
+            async fn json_event(&self, dispatcher: &Flux, event: &Value) -> Vec<HookResponse> {
                 if let Some(kind) = event.get("kind") {
                     let kind = kind.as_str().unwrap().to_string();
                     match(kind.as_str()) {
@@ -162,9 +162,9 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let trigger_kind_str = value_param_type.to_token_stream().to_string();
 
     let create_response = if unit_return {
-        quote! {AxResponse::ok(#fn_name_str)}
+        quote! {HookResponse::ok(#fn_name_str)}
     } else {
-        quote! {AxResponse::entity(#fn_name_str, res)}
+        quote! {HookResponse::entity(#fn_name_str, res)}
     };
     let expanded = quote! {
 
@@ -176,7 +176,7 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
         pub fn #executor_name(
             dispatcher: &Flux,
             value: Arc<Payload>,
-        ) -> Pin<Box<dyn Future<Output = AxResponse> + Send + Sync + '_>> {
+        ) -> Pin<Box<dyn Future<Output = HookResponse> + Send + Sync + '_>> {
             let context: &#context_param_type = dispatcher.get_context();
 
             Box::pin(async move {
@@ -186,10 +186,10 @@ pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     let res = #hook_name(p, dispatcher, context).await;
                     match res {
                         Ok(res) => #create_response,
-                        Err(message) => AxResponse::error(#fn_name_str, &message)
+                        Err(message) => HookResponse::error(#fn_name_str, &message)
                     }
                 }else {
-                    AxResponse::error( #fn_name_str, "Entity downcast error")
+                    HookResponse::error( #fn_name_str, "Entity downcast error")
                 }
             })
         }

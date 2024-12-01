@@ -36,7 +36,7 @@ pub fn create_add_action_handler() -> EventHandler {
 pub fn add_action_executor(
     dispatcher: &Flux,
     value: Arc<Payload>,
-) -> Pin<Box<dyn Future<Output = AxResponse> + Send + Sync + '_>> {
+) -> Pin<Box<dyn Future<Output = HookResponse> + Send + Sync + '_>> {
     let context: &TestContext = dispatcher.get_context();
 
     Box::pin(async move {
@@ -45,11 +45,11 @@ pub fn add_action_executor(
             let p = payload.as_ref();
             let res = add_action(p, dispatcher, context).await;
             match res {
-                Ok(res) => AxResponse::entity("execute_add", res),
-                Err(message) => AxResponse::error( "execute_add", &message)
+                Ok(res) => HookResponse::entity("execute_add", res),
+                Err(message) => HookResponse::error( "execute_add", &message)
             }
         }else {
-            AxResponse::error( "execute_add", "Action downcast error")
+            HookResponse::error( "execute_add", "Action downcast error")
         }
         
     })
@@ -74,7 +74,7 @@ impl FluxContext for TestContext {
         self
     }
 
-    async fn json_event(&self, dispatcher: &Flux, event: &Value) -> Vec<AxResponse> {
+    async fn json_event(&self, dispatcher: &Flux, event: &Value) -> Vec<HookResponse> {
         if let Ok(action) = serde_json::from_value::<Sum>(event.clone()) {
             return dispatcher.dispatch_event(action).await;
         }

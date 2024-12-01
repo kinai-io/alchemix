@@ -1,8 +1,8 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use crate::{
-    flux::{Flux, AxResponse},
-    prelude::Payload,
+    flux::Flux,
+    prelude::*,
 };
 
 pub struct EventHandler {
@@ -32,7 +32,7 @@ impl EventHandler {
         &self.handler_id
     }
 
-    pub async fn handle(&self, context: &Flux, value: Arc<Payload>) -> AxResponse {
+    pub async fn handle(&self, context: &Flux, value: Arc<Payload>) -> HookResponse {
         (self.handler_func)(context, value).await
     }
 
@@ -41,4 +41,44 @@ impl EventHandler {
 pub type HandlerFunction = fn(
     &Flux,
     Arc<Payload>,
-) -> Pin<Box<dyn Future<Output = AxResponse> + Send + Sync + '_>>;
+) -> Pin<Box<dyn Future<Output = HookResponse> + Send + Sync + '_>>;
+
+
+
+#[derive(Debug, Serialize)]
+pub struct HookResponse {
+    pub success: bool,
+    pub handler: String,
+    pub value: Option<Value>,
+    pub message: String
+}
+
+impl HookResponse {
+    pub fn error(handler: &str, message: &str)-> Self {
+        Self {
+            success: false,
+            handler: handler.to_string(),
+            value: None,
+            message: message.to_string()
+        }
+    }
+
+    pub fn ok(handler: &str)-> Self {
+        Self {
+            success: true,
+            handler: handler.to_string(),
+            value: None,
+            message: "".to_string()
+        }
+    }
+
+    pub fn entity<T: Entity>(handler: &str, entity: T)-> Self {
+        Self {
+            success: true,
+            handler: handler.to_string(),
+            value: Some(serde_json::to_value(entity).unwrap()),
+            message: "".to_string()
+        }
+    }
+
+}

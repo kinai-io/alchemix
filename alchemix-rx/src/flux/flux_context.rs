@@ -3,7 +3,7 @@ use std::any::Any;
 use async_trait::async_trait;
 use serde_json::Value;
 
-use super::{Flux, AxResponse, EventHandler};
+use super::{Flux, HookResponse, EventHandler};
 
 #[async_trait]
 pub trait FluxContext: Any + Send + Sync {
@@ -13,5 +13,5 @@ pub trait FluxContext: Any + Send + Sync {
 
     fn get_hooks(&self) -> Vec<EventHandler>;
 
-    async fn json_event(&self, dispatcher: &Flux, event: &Value) -> Vec<AxResponse>;
+    async fn json_event(&self, dispatcher: &Flux, event: &Value) -> Vec<HookResponse>;
 }

@@ -1,11 +1,10 @@
 use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 
-use serde::Serialize;
 use serde_json::Value;
 
 use crate::{flux::EventHandler, prelude::Entity};
 
-use super::FluxContext;
+use super::{FluxContext, HookResponse};
 
 pub struct Flux {
     context: Box<dyn FluxContext>,
@@ -36,7 +35,7 @@ impl Flux {
         }
     }
 
-    pub async fn dispatch_event<T: Entity>(&self, action: T) -> Vec<AxResponse> {
+    pub async fn dispatch_event<T: Entity>(&self, action: T) -> Vec<HookResponse> {
         let event_kind = action.get_kind();
         let data_hooks = &self.action_handlers;
         if let Some(handlers) = data_hooks.get(event_kind) {
@@ -70,7 +69,7 @@ impl Flux {
     }
     
 
-    pub async fn dispatch_json_event(&self, event: Value) -> Vec<AxResponse> {
+    pub async fn dispatch_json_event(&self, event: Value) -> Vec<HookResponse> {
         self.context.json_event(self, &event).await
     }
     
@@ -81,43 +80,4 @@ impl Flux {
 pub struct EventSchema<T> {
     pub name: &'static str,
     pub _marker: PhantomData<T>,
-}
-
-
-#[derive(Debug, Serialize)]
-pub struct AxResponse {
-    pub success: bool,
-    pub handler: String,
-    value: Option<Value>,
-    pub message: String
-}
-
-impl AxResponse {
-    pub fn error(handler: &str, message: &str)-> Self {
-        Self {
-            success: false,
-            handler: handler.to_string(),
-            value: None,
-            message: message.to_string()
-        }
-    }
-
-    pub fn ok(handler: &str)-> Self {
-        Self {
-            success: true,
-            handler: handler.to_string(),
-            value: None,
-            message: "".to_string()
-        }
-    }
-
-    pub fn entity<T: Entity>(handler: &str, entity: T)-> Self {
-        Self {
-            success: true,
-            handler: handler.to_string(),
-            value: Some(serde_json::to_value(entity).unwrap()),
-            message: "".to_string()
-        }
-    }
-
 }
