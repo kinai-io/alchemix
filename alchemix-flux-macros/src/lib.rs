@@ -2,30 +2,9 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, Fields, FnArg, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type,
+    parse_macro_input, FnArg, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type,
     TypeReference,
 };
-
-#[proc_macro_attribute]
-pub fn flux_event(attr: TokenStream, item: TokenStream) -> TokenStream {
-    // let args = parse_macro_input!(args as MetaList);
-    let input = parse_macro_input!(item as ItemStruct);
-
-    let original_decl = input.to_token_stream();
-    let struct_name = &input.ident;
-
-    let expanded = quote! {
-
-        #[entity]
-        #original_decl
-
-        impl AxEvent for #struct_name {
-        }
-
-    };
-
-    TokenStream::from(expanded)
-}
 
 #[proc_macro_attribute]
 pub fn flux_context(attr: TokenStream, item: TokenStream) -> TokenStream {

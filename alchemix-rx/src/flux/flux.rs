@@ -36,7 +36,7 @@ impl Flux {
         }
     }
 
-    pub async fn dispatch_event<T: AxEvent>(&self, action: T) -> Vec<AxResponse> {
+    pub async fn dispatch_event<T: Entity>(&self, action: T) -> Vec<AxResponse> {
         let event_kind = action.get_kind();
         let data_hooks = &self.action_handlers;
         if let Some(handlers) = data_hooks.get(event_kind) {
@@ -83,11 +83,6 @@ pub struct EventSchema<T> {
     pub _marker: PhantomData<T>,
 }
 
-pub trait AxEvent:  Any + Entity + Send + Sync {
-    // fn get_id(&self) -> &str;
-    // fn get_kind(&self) -> &str;
-    // fn get_key(&self) -> String;
-}
 
 #[derive(Debug, Serialize)]
 pub struct AxResponse {

@@ -1,12 +1,12 @@
 use crate::prelude::*;
 
-#[flux_event]
+#[entity]
 pub struct AddAction {
     pub left: u16,
     pub right: u16,
 }
 
-#[flux_event]
+#[entity]
 pub struct Sum {
     pub left: u16,
     pub right: u16,
