@@ -39,13 +39,9 @@ impl Flux {
         let event_kind = action.get_kind();
         let data_hooks = &self.action_handlers;
         if let Some(handlers) = data_hooks.get(event_kind) {
-            // let c = DispatchPayload::new(self, value_ref);
             let value = Arc::new(action);
             let mut futures = vec![];
             for handler in handlers {
-                // handler.handle(context.clone(), value_ref.clone()).await;
-                // let c = DispatchPayload::new(self, value_ref.clone());
-                // let value_ref = Box::new(action.clone());
                 let future = handler.handle(self, value.clone());
                 futures.push(future);
             }
