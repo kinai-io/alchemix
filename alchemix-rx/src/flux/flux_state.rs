@@ -25,7 +25,7 @@ impl FluxState {
         res
     }
 
-    pub async fn query_entities<E: Entity>(
+    pub fn query_entities<E: Entity>(
         &self,
         shard: &str,
         kind: &EntitySchema<E>,
