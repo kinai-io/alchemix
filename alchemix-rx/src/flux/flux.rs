@@ -49,7 +49,7 @@ impl Flux {
                 let future = handler.handle(self, value.clone());
                 futures.push(future);
             }
-            let res = futures::future::join_all(futures).await;
+            let mut res = futures::future::join_all(futures).await;
 
             // Event Cascading : If responses contains event, send them back to the pipeline
             let mut next_futures = vec![];
@@ -61,7 +61,10 @@ impl Flux {
                     }
                 }
             }
-            let _ = futures::future::join_all(next_futures).await;
+            let all_reponses = futures::future::join_all(next_futures).await;
+            all_reponses.into_iter().for_each(|response | {
+                res.extend(response);
+            });
             res
         } else {
             vec![]
