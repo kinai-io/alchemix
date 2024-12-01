@@ -8,8 +8,8 @@ name= "alchemix_web"
 
 [dependencies]
 
-alchemix_rx = { path = "../alchemix-rx", version = "0.1.0"  }
-alchemix_utils = { path = "../alchemix-utils", version = "0.1.0"  }
+alchemix-rx = { path = "../alchemix-rx", version = "0.1.0"  }
+alchemix-utils = { path = "../alchemix-utils", version = "0.1.0"  }
 
 
 rocket = { version = "0.5.1", features = ["json"] }

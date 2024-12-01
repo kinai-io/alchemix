@@ -12,5 +12,5 @@ pub use crate::rx::*;
 pub use crate::flux::*;
 
 pub use alchemix_entity_macros::*;
-pub use alchemix_ax_macros::*;
+pub use alchemix_flux_macros::*;
 pub use alchemix_rx_macros::*;

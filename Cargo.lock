@@ -39,15 +39,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "alchemix-ax-macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "alchemix-entity-macros"
 version = "0.1.0"
 dependencies = [
@@ -57,7 +48,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "alchemix-rx-macros"
+name = "alchemix-flux-macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
@@ -66,12 +57,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "alchemix_rx"
+name = "alchemix-rx"
 version = "0.1.0"
 dependencies = [
- "alchemix-ax-macros",
  "alchemix-entity-macros",
+ "alchemix-flux-macros",
  "alchemix-rx-macros",
+ "alchemix-utils",
  "async-trait",
  "bincode",
  "futures",
@@ -84,7 +76,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "alchemix_utils"
+name = "alchemix-rx-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "alchemix-utils"
 version = "0.1.0"
 dependencies = [
  "chrono",
@@ -99,8 +100,8 @@ dependencies = [
 name = "alchemix_web"
 version = "0.1.0"
 dependencies = [
- "alchemix_rx",
- "alchemix_utils",
+ "alchemix-rx",
+ "alchemix-utils",
  "argon2",
  "chrono",
  "jsonwebtoken",

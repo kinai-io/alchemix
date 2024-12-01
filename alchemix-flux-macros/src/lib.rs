@@ -10,124 +10,18 @@ use syn::{
 pub fn flux_event(attr: TokenStream, item: TokenStream) -> TokenStream {
     // let args = parse_macro_input!(args as MetaList);
     let input = parse_macro_input!(item as ItemStruct);
+
+    let original_decl = input.to_token_stream();
     let struct_name = &input.ident;
-    let vis = input.vis;
 
-    let struct_name_str = struct_name.to_string();
-
-    let mut indexed_field_name = vec![];
-
-    let attr_parser = syn::meta::parser(|meta| {
-        if meta.path.is_ident("index") {
-            meta.parse_nested_meta(|meta| {
-                let name = meta.path.get_ident().unwrap().to_string();
-                indexed_field_name.push(name);
-                Ok(())
-            })
-        } else {
-            Err(meta.error("unsupported factory property"))
-        }
-    });
-
-    parse_macro_input!(attr with attr_parser);
-
-    // eprintln!("Indexed fields : {:?}", &indexed_field_name);
-
-    // let fields = match input.fields {
-    //     Fields::Named(ref fields) => fields.named.clone(),
-    //     _ => panic!("Expected a struct with named fields"),
-    // };
-
-    let user_fields = match input.fields {
-        Fields::Named(ref fields) => fields.named.clone(),
-        _ => panic!("Expected a struct with named fields"),
-    };
-
-    let user_field_names: Vec<&Ident> = user_fields
-        .iter()
-        .map(|f| f.ident.as_ref().unwrap())
-        .collect();
-    let user_field_types: Vec<&syn::Type> = user_fields.iter().map(|f| &f.ty).collect();
-
-    let struct_decl = if user_fields.len() == 0 {
-        quote! {
-            #vis struct #struct_name {
-                id: String,
-                kind: String
-            }
-        }
-    } else {
-        quote! {
-            #vis struct #struct_name {
-                id: String,
-                kind: String,
-                #user_fields
-            }
-        }
-    };
     let expanded = quote! {
-        #[derive(Debug, Serialize, Deserialize, Clone, TS)]
-        #[ts(export)]
 
-        #struct_decl
-
-        impl #struct_name {
-
-            pub fn new(#(#user_field_names: #user_field_types),*) -> Self {
-                Self {
-                    #(#user_field_names),*,  // Populate user-defined fields
-                    kind: stringify!(#struct_name).to_string(),  // Automatically set kind to struct name
-                    id: Uuid::new_v4().to_string(),  // Generate a unique ID
-                }
-            }
-
-            pub fn new_with_id(id: &str, #(#user_field_names: #user_field_types),*) -> Self {
-                Self {
-                    #(#user_field_names),*,  // Populate user-defined fields
-                    kind: stringify!(#struct_name).to_string(),  // Automatically set kind to struct name
-                    id: id.to_string(),
-                }
-            }
-
-        }
+        #[entity]
+        #original_decl
 
         impl AxEvent for #struct_name {
-
-            fn get_id(&self) -> &str {
-                &self.id
-            }
-
-            fn get_kind(&self) -> &str {
-                #struct_name_str
-            }
-
-            fn get_key(&self) -> String{
-                format!("{}#{}", self.get_kind(), &self.id)
-            }
-
         }
 
-    };
-
-    TokenStream::from(expanded)
-}
-
-#[proc_macro_attribute]
-pub fn flux_event_part(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as ItemStruct);
-
-    let name = &input.ident;
-    let fields = match input.fields {
-        Fields::Named(ref fields) => fields.named.clone(),
-        _ => panic!("Expected a struct with named fields"),
-    };
-    let vis = input.vis;
-    let expanded = quote! {
-        #[derive(Debug, Serialize, Deserialize, Clone, TS)]
-        #[ts(export)]
-        #vis struct #name {
-            #fields
-        }
     };
 
     TokenStream::from(expanded)

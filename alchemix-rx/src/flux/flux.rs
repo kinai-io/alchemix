@@ -3,7 +3,7 @@ use std::{any::Any, collections::HashMap, marker::PhantomData, sync::Arc};
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::flux::EventHandler;
+use crate::{flux::EventHandler, prelude::Entity};
 
 use super::FluxContext;
 
@@ -83,10 +83,10 @@ pub struct EventSchema<T> {
     pub _marker: PhantomData<T>,
 }
 
-pub trait AxEvent: Any + Send + Sync {
-    fn get_id(&self) -> &str;
-    fn get_kind(&self) -> &str;
-    fn get_key(&self) -> String;
+pub trait AxEvent:  Any + Entity + Send + Sync {
+    // fn get_id(&self) -> &str;
+    // fn get_kind(&self) -> &str;
+    // fn get_key(&self) -> String;
 }
 
 #[derive(Debug, Serialize)]

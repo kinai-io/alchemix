@@ -1,5 +1,5 @@
 [package]
-name = "alchemix_rx"
+name = "alchemix-rx"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,8 @@ name= "alchemix_rx"
 [dependencies]
 alchemix-entity-macros = { path = "../alchemix-entity-macros", version = "0.1.0" }
 alchemix-rx-macros = { path = "../alchemix-rx-macros", version = "0.1.0"  }
-alchemix-ax-macros = { path = "../alchemix-ax-macros", version = "0.1.0"  }
+alchemix-flux-macros = { path = "../alchemix-flux-macros", version = "0.1.0"  }
+alchemix-utils = { path = "../alchemix-utils", version = "0.1.0"  }
 
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"]}

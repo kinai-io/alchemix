@@ -1,3 +1,5 @@
+use alchemix_utils::file_io;
+use futures::executor::block_on;
 use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePoolOptions, FromRow, Pool, Sqlite};
 
 use crate::entity_store::{Entity, FieldIndex};
@@ -16,12 +18,17 @@ pub struct SQLiteEntityStore {
 
 impl SQLiteEntityStore {
     pub fn new(path: &str) -> Self {
-        Self {
+        let mut instance = Self {
             pool: None,
             max_pool: 5,
             path: path.to_string(),
             pragmas: None,
+        };
+        let res = block_on(instance.open());
+        if res.is_err()  {
+            println!("Error opening store : {}", path);
         }
+        instance
     }
 
     pub fn with_pragmas(mut self, pragmas: &str) -> Self {
@@ -30,6 +37,9 @@ impl SQLiteEntityStore {
     }
 
     pub async fn open(&mut self) -> Result<(), sqlx::Error> {
+        
+        file_io::create_parent_dirs(&self.path);
+
         let database_url = format!("sqlite:{}", &self.path);
 
         if !Sqlite::database_exists(&database_url)
@@ -42,7 +52,7 @@ impl SQLiteEntityStore {
                 Err(error) => panic!("error: {}", error),
             }
         } else {
-            println!("Database already exists");
+            println!("Database already exists {}", &database_url);
         }
 
         let pool = SqlitePoolOptions::new()
