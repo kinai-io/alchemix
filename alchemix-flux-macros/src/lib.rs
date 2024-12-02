@@ -2,8 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, FnArg, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type,
-    TypeReference,
+    parse_macro_input, FnArg, Ident, ItemFn, ItemStruct, Pat, PatType, Path, Type, TypeReference,
 };
 
 #[proc_macro_attribute]
@@ -57,6 +56,8 @@ pub fn flux_context(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let event_arms = build_event_arms(&struct_name, &classes);
+    let get_entities_arms = build_get_entities_arms(&struct_name, &classes);
+    let query_entities_arms = build_query_entities_arms(&struct_name, &classes);
 
     let expanded = quote! {
 
@@ -98,14 +99,26 @@ pub fn flux_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 hooks
             }
 
-            fn query_entities(&self, state: &FluxState, query: &StateQuery) -> Vec<Value> {
-                vec![]
+            fn query_entities(&self, state: &FluxState, query: &StateQuery) -> Value {
+                match(query.kind.as_str()) {
+                    #query_entities_arms
+                    _ => {
+                        let res: Vec<String> = vec![];
+                        serde_json::to_value(res).unwrap()
+                    },
+                }
             }
 
-            fn get_entities(&self, state: &FluxState, query: &StateGetEntities) -> Vec<Value> {
-                vec![]
+            fn get_entities(&self, state: &FluxState, query: &StateGetEntities) -> Value {
+                match(query.kind.as_str()) {
+                    #get_entities_arms
+                    _ => {
+                        let res: Vec<String> = vec![];
+                        serde_json::to_value(res).unwrap()
+                    },
+                }
             }
-            
+
         }
 
     };
@@ -130,6 +143,42 @@ fn build_event_arms(_struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::T
     let expanded = quote! {#(#match_arms)*};
     expanded
 }
+
+fn build_get_entities_arms(struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::TokenStream {
+    let mut match_arms = Vec::new();
+    for class in classes {
+        let class_name = class.get_ident().unwrap();
+        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
+        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
+        match_arms.push(quote! {
+            stringify!(#class_name) => {
+                let ids = query.ids.iter().map(|id| id.as_str()).collect();
+                let res = state.get_entities_of_kind(&query.shard, &#struct_name::#class_name_sk, &ids);
+                serde_json::to_value(res).unwrap()
+            },
+        });
+    }
+    let expanded = quote! {#(#match_arms)*};
+    expanded
+}
+
+fn build_query_entities_arms(struct_name: &Ident, classes: &Vec<Path>) -> proc_macro2::TokenStream {
+    let mut match_arms = Vec::new();
+    for class in classes {
+        let class_name = class.get_ident().unwrap();
+        let class_name_sk = camel_to_snake_uppercase(&class_name.to_string());
+        let class_name_sk = Ident::new(&class_name_sk, Span::call_site());
+        match_arms.push(quote! {
+            stringify!(#class_name) => {
+                let res = state.query_entities(&query.shard, &#struct_name::#class_name_sk, &query.property_name, &query.expr);
+                serde_json::to_value(res).unwrap()
+            },
+        });
+    }
+    let expanded = quote! {#(#match_arms)*};
+    expanded
+}
+
 
 #[proc_macro_attribute]
 pub fn flux_hook(_attr: TokenStream, item: TokenStream) -> TokenStream {

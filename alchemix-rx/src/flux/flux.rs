@@ -77,12 +77,12 @@ impl Flux {
         self.context.json_event(self, &event).await
     }
 
-    pub fn query_entities(&self, query: &StateQuery) -> Vec<Value> {
+    pub fn query_entities(&self, query: &StateQuery) -> Value {
         let res = self.context.query_entities(&self.state, &query);
         res
     }
 
-    pub fn get_entities(&self, query: &StateGetEntities) -> Vec<Value> {
+    pub fn get_entities(&self, query: &StateGetEntities) -> Value {
         let res = self.context.get_entities(&self.state, &query);
         res
     }

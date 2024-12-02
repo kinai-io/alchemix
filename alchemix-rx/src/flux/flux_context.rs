@@ -15,9 +15,9 @@ pub trait FluxContext: Any + Send + Sync {
 
     async fn json_event(&self, dispatcher: &Flux, event: &Value) -> Vec<HookResponse>;
 
-    fn query_entities(&self, state: &FluxState, query: &StateQuery) -> Vec<Value>;
+    fn query_entities(&self, state: &FluxState, query: &StateQuery) -> Value;
 
-    fn get_entities(&self, state: &FluxState, query: &StateGetEntities) -> Vec<Value>;
+    fn get_entities(&self, state: &FluxState, query: &StateGetEntities) -> Value;
 
     
 }

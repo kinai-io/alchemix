@@ -26,7 +26,7 @@ impl FluxState {
     ) -> Vec<E> {
         let store = self.get_store(shard);
         let res = block_on(store.get_entities_of_kind(&kind.name, ids));
-        block_on(store.close());
+        // block_on(store.close());
         res
     }
 
@@ -39,7 +39,7 @@ impl FluxState {
     ) -> Vec<E> {
         let store = self.get_store(shard);
         let res = block_on(store.query_entities(&kind.name, property_name, expr));
-        block_on(store.close());
+        // block_on(store.close());
         res
     }
 
@@ -53,10 +53,10 @@ impl FluxState {
 
 #[derive(Serialize, Deserialize)]
 pub struct StateQuery {
-    shard: String,
-    kind: String,
-    property_name: String,
-    expr: String,
+    pub shard: String,
+    pub kind: String,
+    pub property_name: String,
+    pub expr: String,
 }
 
 impl StateQuery {
@@ -72,9 +72,9 @@ impl StateQuery {
 
 #[derive(Serialize, Deserialize)]
 pub struct StateGetEntities {
-    shard: String,
-    kind: String,
-    ids: Vec<String>,
+    pub shard: String,
+    pub kind: String,
+    pub ids: Vec<String>,
 }
 
 impl StateGetEntities {

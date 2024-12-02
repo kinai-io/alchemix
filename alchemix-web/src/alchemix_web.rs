@@ -118,7 +118,7 @@ pub async fn flux_state_query(
 ) -> Result<Json<Value>, Status> {
     if let Some(flux) = alchemix_web.get_flux(flux_name) {
         let res = flux.query_entities(&query.0);
-        Ok(Json(serde_json::to_value(res).unwrap()))
+        Ok(Json(res))
     } else {
         Err(Status::ServiceUnavailable)
     }
@@ -132,7 +132,7 @@ pub async fn flux_state_entities(
 ) -> Result<Json<Value>, Status> {
     if let Some(flux) = alchemix_web.get_flux(flux_name) {
         let res = flux.get_entities(&query.0);
-        Ok(Json(serde_json::to_value(res).unwrap()))
+        Ok(Json(res))
     } else {
         Err(Status::ServiceUnavailable)
     }

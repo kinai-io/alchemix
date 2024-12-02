@@ -8,7 +8,7 @@ pub struct AddAction {
     pub right: u16,
 }
 
-#[entity]
+#[entity(index(result))]
 pub struct Sum {
     pub left: u16,
     pub right: u16,
@@ -76,7 +76,10 @@ pub async fn test_flux() {
 
     println!("Action JSON : {}", serde_json::to_string(&action).unwrap());
 
-    let query = StateQuery::new("default", "Sum", "result", "value == 5");
+    let res = flux.get_state().query_entities("default", &TestContext::SUM, "result", "value > 0");
+    println!("Direct State query : {:?}", res);
+
+    let query = StateQuery::new("default", "Sum", "result", "value = 5");
     let res = flux.query_entities(&query);
     println!("Query JSON : {}", serde_json::to_string(&res).unwrap());
 
