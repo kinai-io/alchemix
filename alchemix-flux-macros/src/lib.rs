@@ -98,6 +98,14 @@ pub fn flux_context(attr: TokenStream, item: TokenStream) -> TokenStream {
                 hooks
             }
 
+            fn query_entities(&self, state: &FluxState, query: &StateQuery) -> Vec<Value> {
+                vec![]
+            }
+
+            fn get_entities(&self, state: &FluxState, query: &StateGetEntities) -> Vec<Value> {
+                vec![]
+            }
+            
         }
 
     };

@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use crate::{flux::EventHandler, prelude::Entity};
 
-use super::{FluxContext, FluxState, HookResponse};
+use super::{FluxContext, FluxState, HookResponse, StateGetEntities, StateQuery};
 
 pub struct Flux {
     state: FluxState,
@@ -75,5 +75,15 @@ impl Flux {
 
     pub async fn push_json(&self, event: Value) -> Vec<HookResponse> {
         self.context.json_event(self, &event).await
+    }
+
+    pub fn query_entities(&self, query: &StateQuery) -> Vec<Value> {
+        let res = self.context.query_entities(&self.state, &query);
+        res
+    }
+
+    pub fn get_entities(&self, query: &StateGetEntities) -> Vec<Value> {
+        let res = self.context.get_entities(&self.state, &query);
+        res
     }
 }

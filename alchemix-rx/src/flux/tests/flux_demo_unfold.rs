@@ -85,6 +85,15 @@ impl FluxContext for TestContext {
     fn get_hooks(&self) -> Vec<EventHandler> {
         vec![create_add_action_handler()]
     }
+
+    fn query_entities(&self, state: &FluxState, query: &StateQuery) -> Vec<Value> {
+        vec![]
+    }
+
+    fn get_entities(&self, state: &FluxState, query: &StateGetEntities) -> Vec<Value> {
+        vec![]
+    }
+    
 }
 
 #[tokio::test]

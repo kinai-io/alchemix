@@ -1,3 +1,5 @@
+use alchemix_utils::file_io;
+
 use crate::prelude::*;
 
 #[entity]
@@ -43,6 +45,7 @@ pub async fn sum_history(
     hooks(add_action, sum_history)
 )]
 pub struct TestContext {
+    
 }
 
 impl TestContext {
@@ -60,14 +63,25 @@ impl TestContext {
 pub async fn test_flux() {
     let context = TestContext::new();
     
-    let dispatcher = Flux::new("test-data/out/flux-state", context);
+    let path = "test-data/out/flux-state";
+    file_io::remove_dir(path);
+    let flux = Flux::new(path, context);
     
     let action = AddAction::new(2, 3);
 
-    let res = dispatcher.push(action.clone()).await;
+    let res = flux.push(action.clone()).await;
 
     println!("Res : {:?}", res);
     println!("Res JSON : {:?}", serde_json::to_string(&res).unwrap());
 
     println!("Action JSON : {}", serde_json::to_string(&action).unwrap());
+
+    let query = StateQuery::new("default", "Sum", "result", "value == 5");
+    let res = flux.query_entities(&query);
+    println!("Query JSON : {}", serde_json::to_string(&res).unwrap());
+
+    let query = StateGetEntities::new("default", "Sum", vec![]);
+    let res = flux.get_entities(&query);
+    println!("Query JSON : {}", serde_json::to_string(&res).unwrap());
+    
 }

@@ -28,7 +28,7 @@ impl AlchemixWeb {
     }
 
     pub fn with_flux<T: FluxContext>(mut self, name: &str, flux_context: T) -> Self {
-        let store_path= format!("{}/{}",self.data_path, name);
+        let store_path = format!("{}/{}", self.data_path, name);
         self.fluxes
             .insert(name.to_string(), Flux::new(&store_path, flux_context));
         self
@@ -103,6 +103,36 @@ pub async fn flux_post(
     if let Some(flux) = alchemix_web.get_flux(flux_name) {
         let response = flux.push_json(event.0).await;
         Ok(Json(serde_json::to_value(response).unwrap()))
+    } else {
+        Err(Status::ServiceUnavailable)
+    }
+}
+
+
+
+#[post("/flux/<flux_name>/query", data = "<query>")]
+pub async fn flux_state_query(
+    flux_name: &str,
+    query: Json<StateQuery>,
+    alchemix_web: &State<AlchemixWeb>,
+) -> Result<Json<Value>, Status> {
+    if let Some(flux) = alchemix_web.get_flux(flux_name) {
+        let res = flux.query_entities(&query.0);
+        Ok(Json(serde_json::to_value(res).unwrap()))
+    } else {
+        Err(Status::ServiceUnavailable)
+    }
+}
+
+#[post("/flux/<flux_name>/entities", data = "<query>")]
+pub async fn flux_state_entities(
+    flux_name: &str,
+    query: Json<StateGetEntities>,
+    alchemix_web: &State<AlchemixWeb>,
+) -> Result<Json<Value>, Status> {
+    if let Some(flux) = alchemix_web.get_flux(flux_name) {
+        let res = flux.get_entities(&query.0);
+        Ok(Json(serde_json::to_value(res).unwrap()))
     } else {
         Err(Status::ServiceUnavailable)
     }
