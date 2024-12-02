@@ -58,7 +58,14 @@ impl AlchemixWeb {
             .register("/", catchers![auth::forbidded_catcher])
             .mount(
                 "/api",
-                routes![auth::login, auth::refresh_token, rx_action_post, flux_post],
+                routes![
+                    auth::login,
+                    auth::refresh_token,
+                    rx_action_post,
+                    flux_post,
+                    flux_state_entities,
+                    flux_state_query
+                ],
             )
             .attach(AdHoc::on_shutdown("Shutdown Printer", |_| {
                 Box::pin(async move {
@@ -107,8 +114,6 @@ pub async fn flux_post(
         Err(Status::ServiceUnavailable)
     }
 }
-
-
 
 #[post("/flux/<flux_name>/query", data = "<query>")]
 pub async fn flux_state_query(
